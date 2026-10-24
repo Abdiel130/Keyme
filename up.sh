@@ -185,6 +185,7 @@ ensure_env() {
   [[ "$(env_get APP_KEY)" == base64:* ]] || { env_set APP_KEY "base64:$(head -c 32 /dev/urandom | base64)"; info "APP_KEY generada."; }
   [[ -n "$(env_get KEYME_SETUP_TOKEN)" ]] || env_set KEYME_SETUP_TOKEN "$(new_setup_token)"
   [[ -n "$(env_get KEYME_PORT)" ]] || env_set KEYME_PORT 8470
+  [[ "$(env_get HOST_UID)" == "$(id -u)" ]] || { env_set HOST_UID "$(id -u)"; env_set HOST_GID "$(id -g)"; }
   mkdir -p "$(backup_dir)"
 }
 

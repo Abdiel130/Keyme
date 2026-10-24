@@ -1,0 +1,143 @@
+name: keyme
+
+x-api-env: &api-env
+  APP_NAME: Keyme
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: "${APP_KEY:?Falta APP_KEY, corre ./up.sh --setup}"
+  APP_URL: ${APP_URL:-http://localhost:8470}
+  APP_LOCALE: es
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: warning
+  DB_CONNECTION: pgsql
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_DATABASE: ${DB_DATABASE:-keyme}
+  DB_USERNAME: ${DB_USERNAME:-keyme}
+  DB_PASSWORD: "${DB_PASSWORD:?Falta DB_PASSWORD, corre ./up.sh --setup}"
+  CACHE_STORE: database
+  SESSION_DRIVER: array
+  QUEUE_CONNECTION: sync
+  KEYME_SETUP_TOKEN: ${KEYME_SETUP_TOKEN:-}
+  KEYME_DATA_PATH: /data
+  KEYME_ATTACHMENT_MAX_MB: ${KEYME_ATTACHMENT_MAX_MB:-25}
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: keyme-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-keyme}
+      POSTGRES_USER: ${DB_USERNAME:-keyme}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
+    volumes:
+      - keyme_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [keyme]
+
+  api:
+    build:
+      context: ./apps/api
+      target: base
+    image: keyme-api
+    container_name: keyme-api
+    restart: unless-stopped
+    environment: *api-env
+    volumes:
+      - keyme_data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@fsockopen(\"127.0.0.1\", 9000) ? 0 : 1);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [keyme]
+
+  # Tareas programadas de Laravel (purga de elementos borrados a los 30 días)
+  scheduler:
+    image: keyme-api
+    container_name: keyme-scheduler
+    restart: unless-stopped
+    environment:
+      <<: *api-env
+      RUN_MIGRATIONS: "false"
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - keyme_data:/data
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [keyme]
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/nginx/Dockerfile
+    image: keyme-web
+    container_name: keyme-web
+    restart: unless-stopped
+    # Solo loopback: nada fuera de esta máquina llega sin pasar por Tailscale Serve
+    ports:
+      - "127.0.0.1:${KEYME_PORT:-8470}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [keyme]
+
+  backup:
+    image: postgres:17-alpine
+    container_name: keyme-backup
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGDATABASE: ${DB_DATABASE:-keyme}
+      PGUSER: ${DB_USERNAME:-keyme}
+      PGPASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_HOUR: ${BACKUP_HOUR:-03}
+    entrypoint: ["/bin/sh", "/backup/loop.sh"]
+    volumes:
+      - ./infra/backup:/backup:ro
+      - keyme_data:/data:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [keyme]
+
+  # Solo para ./up.sh --test: PHPUnit contra una base aparte (keyme_test)
+  api-test:
+    build:
+      context: ./apps/api
+      target: test
+    image: keyme-api-test
+    profiles: [test]
+    environment:
+      <<: *api-env
+      APP_ENV: testing
+      DB_DATABASE: keyme_test
+      KEYME_SETUP_TOKEN: test-setup-token
+      KEYME_DATA_PATH: /tmp/keyme-test-data
+      CACHE_STORE: array
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [keyme]
+
+networks:
+  keyme:
+    name: keyme-network
+
+volumes:
+  keyme_pgdata:
+    name: keyme_pgdata
+  keyme_data:
+    name: keyme_data

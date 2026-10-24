@@ -1,0 +1,233 @@
+@if (entry(); as e) {
+  <div class="page">
+    <div class="topbar">
+      <a class="btn icon ghost back" routerLink="/" aria-label="Volver"><km-icon name="back" /></a>
+      <span class="grow"></span>
+      <button class="btn icon ghost" (click)="toggleFav()" [class.fav]="e.favorite" [title]="e.favorite ? 'Quitar de favoritos' : 'Favorito'"><km-icon name="star" /></button>
+      <button class="btn icon ghost" (click)="duplicate()" title="Duplicar"><km-icon name="copy" /></button>
+      <a class="btn" [routerLink]="['/item', e.id, 'editar']"><km-icon name="edit" [size]="16" /> Editar</a>
+    </div>
+
+    <header class="head">
+      @if (e.kind !== 'card') {
+        <km-avatar [entry]="e" [size]="64" [ring]="space()?.color ?? null" />
+      }
+      <div class="htxt">
+        <h1>{{ e.title || 'Sin título' }}</h1>
+        <div class="meta">
+          @if (space(); as s) {
+            <span class="chip sp" [style.--c]="s.color"><km-icon [name]="s.icon" [size]="12" /> {{ s.name }}</span>
+          }
+          <span class="chip"><km-icon [name]="e.kind" [size]="12" /> {{ e.kind === 'document' ? docLabel[$any(e).docType] : kindLabel[e.kind] }}</span>
+          @for (t of e.tags; track t) {
+            <button class="chip tagc" (click)="ui.filter.set({ type: 'tag', tag: t })">#{{ t }}</button>
+          }
+        </div>
+      </div>
+    </header>
+
+    @switch (e.kind) {
+      @case ('login') {
+        @if (provider(); as p) {
+          <a class="linked panel" [routerLink]="['/item', p.id]">
+            <km-avatar [entry]="p" [size]="34" [ring]="ui.spaceById().get(p.spaceId ?? '')?.color ?? null" />
+            <span><span class="faint small">Inicia sesión con</span><b>{{ p.title }}</b><span class="faint small">{{ p.username }}</span></span>
+            <km-icon name="chevron" />
+          </a>
+        }
+        @if (e.username || e.password || e.totp || !provider()) {
+        <div class="card-block panel">
+          @if (e.username) { <km-secret-row label="Usuario" [value]="e.username" (copied)="used()" /> }
+          @if (e.password) {
+            <km-secret-row label="Contraseña" [value]="e.password" [secret]="true" (copied)="used()" />
+            <div class="meter"><km-strength [value]="e.password" [inputs]="[e.username, e.title]" [detail]="false" /></div>
+          }
+          @if (e.totp) { <div class="pad"><km-totp [secret]="e.totp" /></div> }
+          @if (!e.username && !e.password && !e.totp && !provider()) {
+            <p class="faint pad">Sin credenciales. <a [routerLink]="['/item', e.id, 'editar']">Agregar</a></p>
+          }
+        </div>
+        }
+
+        @if (e.urls.length || e.androidPackages.length) {
+          <h3>Sitios y apps</h3>
+          <div class="card-block panel">
+            @for (u of e.urls; track $index) {
+              <div class="url">
+                <km-icon name="login" [size]="16" />
+                <span class="grow"><b>{{ hostOf(u.value) || u.value }}</b><span class="faint tiny">{{ u.match === 'base' ? 'Dominio y subdominios' : u.match === 'host' ? 'Solo este host' : 'Expresión regular' }}</span></span>
+                @if (u.match !== 'regex') { <button class="btn sm ghost" (click)="openUrl(u.value)"><km-icon name="external" [size]="14" /> Abrir</button> }
+              </div>
+            }
+            @for (p of e.androidPackages; track p) {
+              <div class="url"><km-icon name="phone" [size]="16" /><span class="grow mono small">{{ p }}</span><span class="chip">Android</span></div>
+            }
+          </div>
+        }
+
+        @if (e.recoveryCodes.length) {
+          <h3>Códigos de recuperación <span class="faint small">{{ unusedCodes(e) }} sin usar</span></h3>
+          <div class="codes panel">
+            @for (c of e.recoveryCodes; track $index; let i = $index) {
+              <div class="code" [class.used]="c.used">
+                <button class="mono" (click)="copy(c.code, 'Código copiado')" [disabled]="c.used">{{ c.code }}</button>
+                <button class="btn icon sm ghost" (click)="toggleCode(i)" [title]="c.used ? 'Marcar como no usado' : 'Marcar como usado'"><km-icon [name]="c.used ? 'x' : 'check'" [size]="14" /></button>
+              </div>
+            }
+          </div>
+        }
+
+        @if (dependents().length) {
+          <h3>Servicios que inician sesión con esta cuenta</h3>
+          <p class="faint small sub">Si esta cuenta se compromete, revisa también estos.</p>
+          <div class="deps">
+            @for (d of dependents(); track d.id) {
+              <a class="dep panel" [routerLink]="['/item', d.id]"><km-avatar [entry]="d" [size]="28" /> {{ d.title }}</a>
+            }
+          </div>
+        }
+      }
+
+      @case ('card') {
+        @let c = asCard(e);
+        <div class="card-hero">
+          <km-card-visual [card]="c" [revealed]="revealCard()" (click)="revealCard.set(!revealCard())" />
+          <div class="card-actions">
+            <button class="btn" (click)="revealCard.set(!revealCard())"><km-icon [name]="revealCard() ? 'eye-off' : 'eye'" [size]="16" /> {{ revealCard() ? 'Ocultar' : 'Mostrar' }}</button>
+            @if (c.dynamicCvv && (c.bankAppPackage || c.bankAppUrl)) {
+              <button class="btn primary" (click)="openBank(c)"><km-icon name="bank" [size]="16" /> Abrir app del banco</button>
+            }
+          </div>
+        </div>
+        <div class="card-block panel">
+          @if (c.number) { <km-secret-row label="Número" [value]="c.number" [secret]="true" [format]="formatCard" (copied)="used()" /> }
+          @if (c.expiry) { <km-secret-row label="Vencimiento" [value]="c.expiry" [mono]="true" /> }
+          @if (c.dynamicCvv) {
+            <div class="dyn pad"><km-icon name="zap" [size]="16" /> CVV dinámico: lo genera la app de tu banco.</div>
+          } @else if (c.cvv) {
+            <km-secret-row label="CVV" [value]="c.cvv" [secret]="true" />
+          }
+          @if (c.pin) { <km-secret-row label="NIP" [value]="c.pin" [secret]="true" /> }
+          @if (c.holder) { <km-secret-row label="Titular" [value]="c.holder" /> }
+          @if (c.bank) { <km-secret-row label="Banco" [value]="c.bank" /> }
+        </div>
+      }
+
+      @case ('document') {
+        @let d = $any(e);
+        @if (d.expiresAt) {
+          @let left = daysUntil(d.expiresAt);
+          @if (left <= 30) {
+            <div class="alert" [class.bad]="left < 0"><km-icon name="clock" [size]="16" /> {{ left < 0 ? 'Venció el ' + date(d.expiresAt) : 'Vence en ' + left + ' días (' + date(d.expiresAt) + ')' }}</div>
+          }
+        }
+        <div class="card-block panel">
+          @if (d.number) { <km-secret-row [label]="'Número de ' + docLabel[d.docType]" [value]="d.number" [mono]="true" [secret]="true" (copied)="used()" /> }
+          @if (d.fullName) { <km-secret-row label="Nombre" [value]="d.fullName" /> }
+          @if (d.issuedAt) { <km-secret-row label="Expedición" [value]="date(d.issuedAt)" /> }
+          @if (d.expiresAt) { <km-secret-row label="Vigencia" [value]="date(d.expiresAt)" /> }
+        </div>
+      }
+
+      @case ('identity') {
+        @let i = $any(e);
+        <div class="card-block panel">
+          @if (i.fullName) { <km-secret-row label="Nombre completo" [value]="i.fullName" /> }
+          @if (i.email) { <km-secret-row label="Correo" [value]="i.email" /> }
+          @if (i.phone) { <km-secret-row label="Teléfono" [value]="i.phone" [mono]="true" /> }
+          @if (i.birthDate) { <km-secret-row label="Nacimiento" [value]="date(i.birthDate)" /> }
+          @if (i.street || i.city) { <km-secret-row label="Dirección" [value]="address(i)" /> }
+        </div>
+      }
+
+      @case ('wifi') {
+        @let w = $any(e);
+        <div class="wifi">
+          <div class="card-block panel grow">
+            <km-secret-row label="Red (SSID)" [value]="w.ssid" />
+            @if (w.password) { <km-secret-row label="Contraseña" [value]="w.password" [secret]="true" (copied)="used()" /> }
+            <km-secret-row label="Seguridad" [value]="w.security === 'nopass' ? 'Abierta' : w.security" />
+          </div>
+          @if (w.ssid) {
+            <div class="qr"><km-qr [value]="wifiQr(w)" alt="QR para conectarse" /><span class="faint small">Escanéalo con la cámara para conectarte</span></div>
+          }
+        </div>
+      }
+    }
+
+    @if (e.fields.length) {
+      <h3>Campos</h3>
+      <div class="card-block panel">
+        @for (f of e.fields; track f.id) {
+          <km-secret-row [label]="f.label || 'Campo'" [value]="f.value" [secret]="f.secret" />
+        }
+      </div>
+    }
+
+    @if (e.notes) {
+      <h3>Notas</h3>
+      <div class="notes panel">{{ e.notes }}</div>
+    }
+
+    @if (e.attachments.length) {
+      <h3>Adjuntos</h3>
+      <div class="files">
+        @for (a of e.attachments; track a.id) {
+          <button class="file panel" (click)="download(a)">
+            @if (previews()[a.id]; as src) {
+              <img [src]="src" [alt]="a.name" />
+            } @else {
+              <span class="ficon"><km-icon [name]="a.mime.startsWith('image/') ? 'image' : 'file'" [size]="22" /></span>
+            }
+            <span class="fname">{{ a.name }}</span>
+            <span class="faint tiny">{{ size(a.size) }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    @if (e.history.length) {
+      <h3>
+        <button class="linkish" (click)="showHistory.set(!showHistory())">
+          <km-icon name="history" [size]="16" /> Historial ({{ e.history.length }}) <km-icon [name]="showHistory() ? 'down' : 'chevron'" [size]="14" />
+        </button>
+      </h3>
+      @if (showHistory()) {
+        <div class="card-block panel">
+          @for (h of e.history; track $index) {
+            <div class="hist">
+              <span class="grow">
+                <b>{{ h.reason === 'conflict' ? 'Versión de otro dispositivo' : 'Contraseña anterior' }}</b>
+                <span class="faint tiny">{{ date(h.at) }} · {{ h.at.slice(11, 16) }}</span>
+              </span>
+              @if (h.password) { <button class="btn sm ghost mono" (click)="copy(h.password!, 'Contraseña anterior copiada')">•••••• <km-icon name="copy" [size]="13" /></button> }
+              <button class="btn sm" (click)="restore(h)">Restaurar</button>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <div class="moves">
+      <span class="faint small">Mover a</span>
+      @for (s of store.spaces(); track s.id) {
+        @if (s.id !== e.spaceId) {
+          <button class="chip sp" [style.--c]="s.color" (click)="moveTo(s.id)">{{ s.name }}</button>
+        }
+      }
+    </div>
+
+    <footer class="foot">
+      <span class="faint tiny">Creado {{ date(e.createdAt) }} · Modificado {{ date(e.modifiedAt) }}@if (e.rotatedAt) { · Contraseña de {{ date(e.rotatedAt) }}}@if (e.usage?.count) { · Usado {{ e.usage!.count }} veces}</span>
+      @if (!confirmDelete()) {
+        <button class="btn sm danger" (click)="confirmDelete.set(true)"><km-icon name="trash" [size]="14" /> Eliminar</button>
+      } @else {
+        <span class="confirm"><span class="small">¿Eliminar? Se borra en todos tus dispositivos.</span>
+          <button class="btn sm danger" (click)="remove()">Sí, eliminar</button>
+          <button class="btn sm ghost" (click)="confirmDelete.set(false)">No</button></span>
+      }
+    </footer>
+  </div>
+} @else {
+  <div class="empty"><km-icon name="search" [size]="28" /><h2>No encontrado</h2><p>Este elemento no existe o fue eliminado.</p><a class="btn" routerLink="/">Volver</a></div>
+}

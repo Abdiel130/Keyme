@@ -1,0 +1,72 @@
+<header class="head">
+  <div class="title-row">
+    <button class="btn icon ghost burger" (click)="ui.railOpen.set(true)" aria-label="Menú"><km-icon name="menu" /></button>
+    <h2>{{ ui.filterTitle() }}</h2>
+    <span class="count">{{ ui.filtered().length }}</span>
+    <button class="btn icon sm ghost lock-m" (click)="store.lock()" aria-label="Bloquear"><km-icon name="lock" [size]="16" /></button>
+  </div>
+  <div class="search">
+    <km-icon name="search" [size]="16" />
+    <input id="km-search" type="search" placeholder="Filtrar…" [value]="ui.query()" (input)="ui.query.set($any($event.target).value)"
+           (keydown)="onKey($event)" autocomplete="off" spellcheck="false" />
+    @if (ui.query()) {
+      <button class="btn icon sm ghost" (click)="ui.query.set('')" aria-label="Limpiar"><km-icon name="x" [size]="14" /></button>
+    } @else {
+      <span class="kbd">/</span>
+    }
+  </div>
+  @if (!ui.query()) {
+    <div class="sorts">
+      @for (s of sorts; track s.id) {
+        <button [class.on]="ui.sort() === s.id" (click)="ui.setSort(s.id)">{{ s.label }}</button>
+      }
+    </div>
+  }
+</header>
+
+<div class="scroll" tabindex="-1" (keydown)="onKey($event)">
+  @if (ui.filter().type === 'all' && !ui.query() && expiring().length) {
+    <button class="expiring" (click)="open(expiring()[0].entry)">
+      <km-icon name="clock" [size]="16" />
+      <span>
+        <b>{{ expiring()[0].entry.title || 'Documento' }}</b>
+        {{ expiring()[0].days < 0 ? 'venció hace ' + -expiring()[0].days + ' días' : expiring()[0].days === 0 ? 'vence hoy' : 'vence en ' + expiring()[0].days + ' días' }}
+        @if (expiring().length > 1) { <span class="faint"> · y {{ expiring().length - 1 }} más</span> }
+      </span>
+    </button>
+  }
+
+  @for (e of ui.filtered(); track e.id) {
+    <div class="item" role="button" tabindex="0" [attr.data-id]="e.id" [class.on]="selected() === e.id" (click)="open(e)" (keydown.enter)="open(e)">
+      <km-avatar [entry]="e" [ring]="spaceColor(e)" [size]="38" />
+      <div class="txt">
+        <div class="t">{{ e.title || 'Sin título' }}
+          @if (e.favorite) { <km-icon name="star" [size]="12" class="fav" /> }
+        </div>
+        <div class="s">
+          @let st = sub(e);
+          @if (spaceName(e) && ui.filter().type !== 'space') { <span class="sp" [class.solo]="!st" [style.--c]="spaceColor(e)">{{ spaceName(e) }}</span> }
+          {{ st }}
+        </div>
+      </div>
+      @if (e.kind === 'login' || e.kind === 'wifi' || e.kind === 'card') {
+        <button class="btn icon sm ghost qc" (click)="quickCopy($event, e)" [title]="e.kind === 'card' ? 'Copiar número' : 'Copiar contraseña'">
+          <km-icon [name]="e.kind === 'card' ? 'card' : 'key'" [size]="15" />
+        </button>
+      }
+    </div>
+  } @empty {
+    <div class="empty">
+      @if (ui.query()) {
+        <km-icon name="search" [size]="28" />
+        <p>Nada coincide con “{{ ui.query() }}”.</p>
+      } @else if (store.entries().length === 0) {
+        <km-icon name="sparkle" [size]="30" />
+        <h2>Tu vault está vacío</h2>
+        <p>Crea tu primer elemento con <b>Nuevo</b> o importa desde SafeInCloud en Ajustes.</p>
+      } @else {
+        <p>No hay elementos aquí todavía.</p>
+      }
+    </div>
+  }
+</div>

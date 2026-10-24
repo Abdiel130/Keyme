@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "password": "correcto caballo batería grapa ñandú",
+  "salt": "AAECAwQFBgcICQoLDA0ODw",
+  "params": {
+    "alg": "argon2id13",
+    "ops": 3,
+    "mem": 67108864
+  },
+  "wrap_key": "4nZbTl8VQ9Nw8M6p4N7BIWV1stwM_cuIYXaq0Av1BwA",
+  "auth_key": "wdP8e4deCobHWPE4VYt-gSAy9dUcn4gmoIefsHE7YnM",
+  "vault_key": "__79_Pv6-fj39vX08_Lx8O_u7ezr6uno5-bl5OPi4eA",
+  "wrapped_vault_key": "AQADBgkMDxIVGBseISQnKi0wMzY5PD9CRYMYh_jNLaCXRemIkGf_mn8AJ1f6ueGsf1yu6ZfgvhP4AXIEc3MRqnA9r6hje7URzA",
+  "item_id": "0192f3a0-0000-7000-8000-000000000001",
+  "item": {
+    "type": "login",
+    "title": "Google · Personal",
+    "username": "yo@gmail.com",
+    "password": "pa$$wörd",
+    "urls": [
+      "https://accounts.google.com"
+    ]
+  },
+  "item_blob": "AQADBgkMDxIVGBseISQnKi0wMzY5PD9CRehEynmSP8AFYGgy0ibLgw72L0tvMdL2b_ePk8IWiKIIWg5BOdkRop5u1jctOknXOhLHXtmXwWh4TfEFKnyZaZLOOcjNEfA37r_xhqqTG8MVOKcqvTyWApU2kkttkuT7ZbtHrTtoP4PczR_Mk7OCTPQkKlb7A85qNy-NINMR3NUr_U33cN_IGr5cCAtLojumvOD-kg6K"
+}

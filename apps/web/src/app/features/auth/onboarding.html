@@ -1,0 +1,122 @@
+<main class="auth">
+  <section class="art" aria-hidden="true">
+    <km-dial [busy]="step() === 'creating'" [open]="step() === 'kit'" />
+    <div class="art-copy">
+      <p class="eyebrow">Keyme</p>
+      <p class="quote">Tus llaves viven contigo.<br /><em>El servidor solo guarda cajas cerradas.</em></p>
+    </div>
+  </section>
+
+  <section class="pane">
+    <ol class="progress" aria-label="Pasos">
+      @for (s of steps; track s; let i = $index) {
+        <li [class.done]="i < stepIndex()" [class.now]="i === stepIndex()"></li>
+      }
+    </ol>
+
+    @switch (step()) {
+      @case ('welcome') {
+        <div class="body">
+          <h1>Bienvenido a tu bóveda</h1>
+          <p class="lead">Vamos a crear tu vault. Toma dos minutos y solo se hace una vez.</p>
+          <ul class="points">
+            <li><km-icon name="lock" /><div><b>Cifrado en este dispositivo.</b> Tu contraseña maestra nunca sale de aquí: ni siquiera el servidor puede leer tus datos.</div></li>
+            <li><km-icon name="cloud-off" /><div><b>Funciona sin conexión.</b> Todo se guarda localmente y se sincroniza cuando tu servidor esté encendido.</div></li>
+            <li><km-icon name="alert" /><div><b>Sin recuperación.</b> Si olvidas la contraseña maestra nadie puede restablecerla. Por eso te daremos un kit de emergencia.</div></li>
+          </ul>
+          <button class="btn primary lg block" (click)="next('token')">Comenzar <km-icon name="chevron" [size]="16" /></button>
+        </div>
+      }
+
+      @case ('token') {
+        <form class="body" (ngSubmit)="token.trim() && next('password')">
+          <h1>Confirma que eres tú</h1>
+          <p class="lead">Escribe el <b>token de instalación</b> que imprimió <code>./up.sh --setup</code> en la terminal del servidor. Así nadie más en tu red puede crear el vault antes que tú.</p>
+          <div class="field">
+            <label for="tok">Token de instalación</label>
+            <input id="tok" class="mono" name="token" [(ngModel)]="token" autocomplete="off" spellcheck="false" autofocus placeholder="km-setup-…" />
+          </div>
+          <div class="field">
+            <label for="dev">Nombre de este dispositivo</label>
+            <input id="dev" name="device" [(ngModel)]="deviceName" maxlength="120" />
+          </div>
+          @if (error()) {
+            <p class="error"><km-icon name="alert" [size]="16" /> {{ error() }}</p>
+          }
+          <div class="row">
+            <button type="button" class="btn ghost" (click)="next('welcome')"><km-icon name="back" [size]="16" /> Atrás</button>
+            <button class="btn primary lg grow" [disabled]="!token.trim()">Continuar</button>
+          </div>
+        </form>
+      }
+
+      @case ('password') {
+        <form class="body" (ngSubmit)="create()">
+          <h1>Tu contraseña maestra</h1>
+          <p class="lead">Es la única que tendrás que recordar. Una frase de varias palabras es más fuerte y más fácil de memorizar que una contraseña corta.</p>
+          <div class="field">
+            <label for="mp">Contraseña maestra
+              <button type="button" class="btn sm ghost push" (click)="suggest()"><km-icon name="sparkle" [size]="14" /> Sugerir una frase</button>
+            </label>
+            <div class="input-wrap">
+              <input id="mp" name="mp" [type]="show() ? 'text' : 'password'" class="mono" [ngModel]="password()" (ngModelChange)="password.set($event)" autocomplete="new-password" autofocus />
+              <span class="adorn">
+                <button type="button" class="btn icon sm ghost" (click)="show.set(!show())"><km-icon [name]="show() ? 'eye-off' : 'eye'" [size]="16" /></button>
+              </span>
+            </div>
+            <km-strength [value]="password()" />
+          </div>
+          <div class="field">
+            <label for="mp2">Escríbela otra vez</label>
+            <input id="mp2" name="mp2" [type]="show() ? 'text' : 'password'" class="mono" [ngModel]="confirm()" (ngModelChange)="confirm.set($event)" autocomplete="new-password" />
+            @if (confirm() && confirm() !== password()) {
+              <span class="hint bad">No coinciden todavía.</span>
+            }
+          </div>
+          <label class="check">
+            <input type="checkbox" [checked]="accepted()" (change)="accepted.set($any($event.target).checked)" />
+            Entiendo que si la olvido, no hay forma de recuperar mi vault.
+          </label>
+          @if (error()) {
+            <p class="error"><km-icon name="alert" [size]="16" /> {{ error() }}</p>
+          }
+          @if (password() && score() < 3) {
+            <p class="hint">Necesita al menos nivel “Buena”. Prueba “Sugerir una frase”.</p>
+          }
+          <div class="row">
+            <button type="button" class="btn ghost" (click)="next('token')"><km-icon name="back" [size]="16" /> Atrás</button>
+            <button class="btn primary lg grow" [disabled]="!canCreate()">Crear mi vault</button>
+          </div>
+        </form>
+      }
+
+      @case ('creating') {
+        <div class="body center">
+          <h1>Forjando tus llaves…</h1>
+          <p class="lead">Argon2id está derivando la llave de tu contraseña. Es lento a propósito: así también lo será para cualquiera que intente adivinarla.</p>
+        </div>
+      }
+
+      @case ('kit') {
+        <div class="body">
+          <h1>Tu vault está listo</h1>
+          <p class="lead">Descarga tu kit de emergencia, imprímelo y escribe tu contraseña maestra a mano. Guárdalo en un lugar físico seguro.</p>
+          <div class="kit panel">
+            <km-icon name="file" [size]="28" />
+            <div>
+              <b>Keyme-kit-de-emergencia.pdf</b>
+              <p class="faint small">Instrucciones y un espacio para tu contraseña. No contiene ningún dato de tu vault.</p>
+            </div>
+          </div>
+          <button class="btn lg block" [class.primary]="!kitDownloaded()" (click)="kit()">
+            <km-icon [name]="kitDownloaded() ? 'check' : 'download'" [size]="16" /> {{ kitDownloaded() ? 'Descargado' : 'Descargar kit de emergencia' }}
+          </button>
+          <button class="btn lg block" [class.primary]="kitDownloaded()" [class.ghost]="!kitDownloaded()" (click)="finish()">
+            {{ kitDownloaded() ? 'Entrar a mi vault' : 'Lo haré después' }}
+          </button>
+          <p class="faint small">Creamos tres espacios para empezar: Personal, Escuela y Trabajo. Puedes cambiarlos en Ajustes.</p>
+        </div>
+      }
+    }
+  </section>
+</main>

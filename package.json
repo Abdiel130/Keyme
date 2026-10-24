@@ -1,0 +1,12 @@
+{
+  "name": "keyme",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/web"
+  ],
+  "scripts": {
+    "test": "npm test --workspaces --if-present",
+    "test:crypto": "npm test -w @keyme/crypto"
+  }
+}

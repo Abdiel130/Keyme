@@ -1,0 +1,253 @@
+<div class="page">
+  <div class="page-head"><div><p class="eyebrow">Keyme</p><h1>Ajustes</h1></div></div>
+
+  <nav class="toc">
+    <a href="#seguridad">Seguridad</a><a href="#espacios">Espacios</a><a href="#reglas">Reglas por sitio</a>
+    <a href="#importar">Importar y exportar</a><a href="#dispositivos">Dispositivos</a><a href="#registro">Registro</a><a href="#apariencia">Apariencia</a>
+  </nav>
+
+  <!-- Seguridad -->
+  <section id="seguridad" class="sec">
+    <h2>Seguridad</h2>
+    <div class="panel group">
+      <div class="opt">
+        <div class="ot"><b>Bloqueo automático</b><span class="faint small">Tras este tiempo sin actividad se borra la llave de memoria.</span></div>
+        <select class="input sel" [ngModel]="s().autoLockMinutes" (ngModelChange)="save({ autoLockMinutes: +$event })">
+          @for (m of lockOptions; track m) { <option [ngValue]="m">{{ m === 0 ? 'Nunca' : m + ' min' }}</option> }
+        </select>
+      </div>
+      <div class="opt">
+        <div class="ot"><b>Bloquear al cambiar de pestaña o minimizar</b><span class="faint small">Más seguro, menos cómodo.</span></div>
+        <label class="check"><input type="checkbox" [checked]="s().lockOnHide" (change)="save({ lockOnHide: $any($event.target).checked })" /></label>
+      </div>
+      <div class="opt">
+        <div class="ot"><b>Limpiar portapapeles</b><span class="faint small">Borra lo copiado después de este tiempo.</span></div>
+        <select class="input sel" [ngModel]="s().clipboardSeconds" (ngModelChange)="save({ clipboardSeconds: +$event })">
+          @for (c of clipOptions; track c) { <option [ngValue]="c">{{ c === 0 ? 'Nunca' : c + ' s' }}</option> }
+        </select>
+      </div>
+      <div class="opt">
+        <div class="ot"><b><km-icon name="fingerprint" [size]="16" /> Windows Hello / passkey</b>
+          <span class="faint small">
+            @if (!helloSupported()) { Este navegador o equipo no ofrece un autenticador compatible (se necesita WebAuthn con PRF y HTTPS o localhost). }
+            @else if (hello()) { Activo en este navegador desde {{ when(hello()!.createdAt) }}. Cada 14 días se pide la contraseña maestra. }
+            @else { Desbloquea con huella, rostro o PIN. La llave se guarda envuelta en este navegador; el servidor no participa. }
+          </span>
+        </div>
+        @if (hello()) {
+          <button class="btn sm danger" (click)="disableHello()">Desactivar</button>
+        } @else {
+          <button class="btn sm primary" [disabled]="!helloSupported() || helloBusy()" (click)="enableHello()">Activar</button>
+        }
+      </div>
+    </div>
+
+    <div class="panel group">
+      <div class="opt">
+        <div class="ot"><b>Contraseña maestra</b><span class="faint small">Cambiarla vuelve a envolver tu Vault Key; no re-cifra los elementos.</span></div>
+        <button class="btn sm" (click)="cpOpen.set(!cpOpen())">{{ cpOpen() ? 'Cancelar' : 'Cambiar' }}</button>
+      </div>
+      @if (cpOpen()) {
+        <form class="inline-form" (ngSubmit)="changePassword()">
+          <div class="field"><label>Contraseña actual</label><input type="password" class="mono" name="cpc" [(ngModel)]="cpCurrent" autocomplete="current-password" /></div>
+          <div class="field"><label>Nueva contraseña</label><input type="password" class="mono" name="cpn" [ngModel]="cpNew()" (ngModelChange)="cpNew.set($event)" autocomplete="new-password" /><km-strength [value]="cpNew()" /></div>
+          <div class="field"><label>Repite la nueva</label><input type="password" class="mono" name="cpr" [(ngModel)]="cpConfirm" autocomplete="new-password" /></div>
+          <label class="check small"><input type="checkbox" name="rev" [(ngModel)]="cpRevoke" /> Cerrar la sesión en los demás dispositivos</label>
+          <button class="btn primary" [disabled]="cpBusy() || !cpCurrent || cpNew() !== cpConfirm || cpScore() < 3">
+            @if (cpBusy()) { <span class="spinner"></span> } Cambiar contraseña
+          </button>
+        </form>
+      }
+      <div class="opt">
+        <div class="ot"><b>Rotar Vault Key</b><span class="faint small">Si sospechas que alguien obtuvo tu llave: genera una nueva y re-cifra todo. Requiere conexión.</span></div>
+        <button class="btn sm danger" (click)="rotOpen.set(!rotOpen())">{{ rotOpen() ? 'Cancelar' : 'Rotar' }}</button>
+      </div>
+      @if (rotOpen()) {
+        <form class="inline-form" (ngSubmit)="rotate()">
+          <p class="small muted">Los demás dispositivos perderán la sesión y tendrán que volver a iniciar con la contraseña maestra.</p>
+          <div class="field"><label>Contraseña maestra</label><input type="password" class="mono" name="rot" [(ngModel)]="rotPassword" autocomplete="current-password" /></div>
+          <button class="btn danger" [disabled]="rotBusy() || !rotPassword">@if (rotBusy()) { <span class="spinner"></span> } Rotar ahora</button>
+        </form>
+      }
+      <div class="opt">
+        <div class="ot"><b>Kit de emergencia</b><span class="faint small">PDF para imprimir y escribir tu contraseña a mano.</span></div>
+        <button class="btn sm" (click)="kit()"><km-icon name="download" [size]="14" /> Descargar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Espacios -->
+  <section id="espacios" class="sec">
+    <div class="sec-head"><h2>Espacios</h2><button class="btn sm" (click)="addSpace()"><km-icon name="plus" [size]="14" /> Espacio</button></div>
+    <p class="faint small">Contextos de vida. Cada cuenta aparece etiquetada con el color de su espacio.</p>
+    <div class="panel group">
+      @for (sp of store.spaces(); track sp.id; let first = $first; let last = $last) {
+        <div class="space-row" [style.--c]="sp.color">
+          <span class="sw"><km-icon [name]="sp.icon" [size]="16" /></span>
+          @if (editing() === sp.id) {
+            <div class="space-edit">
+              <input class="input" [ngModel]="sp.name" (change)="updateSpace(sp, { name: $any($event.target).value.trim() || sp.name })" maxlength="40" autofocus />
+              <div class="swatches">
+                @for (c of colors; track c) { <button class="swatch" [style.background]="c" [class.on]="c === sp.color" (click)="updateSpace(sp, { color: c })" [attr.aria-label]="c"></button> }
+              </div>
+              <div class="icons">
+                @for (i of icons; track i) { <button class="btn icon sm" [class.primary]="i === sp.icon" (click)="updateSpace(sp, { icon: i })"><km-icon [name]="i" [size]="15" /></button> }
+              </div>
+              <button class="btn sm" (click)="editing.set(null)"><km-icon name="check" [size]="14" /> Listo</button>
+            </div>
+          } @else {
+            <b class="grow">{{ sp.name }}</b>
+            <span class="faint small">{{ countIn(sp.id) }}</span>
+            <button class="btn icon sm ghost" [disabled]="first" (click)="moveSpace(sp, -1)" title="Subir"><km-icon name="down" [size]="14" class="up" /></button>
+            <button class="btn icon sm ghost" [disabled]="last" (click)="moveSpace(sp, 1)" title="Bajar"><km-icon name="down" [size]="14" /></button>
+            <button class="btn icon sm ghost" (click)="editing.set(sp.id)" title="Editar"><km-icon name="edit" [size]="14" /></button>
+            <button class="btn icon sm ghost" (click)="deleting.set(sp.id); moveTarget = null" title="Eliminar"><km-icon name="trash" [size]="14" /></button>
+          }
+        </div>
+        @if (deleting() === sp.id) {
+          <div class="confirm">
+            <span class="small">Mover sus {{ countIn(sp.id) }} elementos a</span>
+            <select class="input sel" [(ngModel)]="moveTarget">
+              <option [ngValue]="null">Sin espacio</option>
+              @for (o of store.spaces(); track o.id) { @if (o.id !== sp.id) { <option [ngValue]="o.id">{{ o.name }}</option> } }
+            </select>
+            <button class="btn sm danger" (click)="deleteSpace(sp)">Eliminar espacio</button>
+            <button class="btn sm ghost" (click)="deleting.set(null)">Cancelar</button>
+          </div>
+        }
+      }
+    </div>
+  </section>
+
+  <!-- Reglas -->
+  <section id="reglas" class="sec">
+    <h2>Reglas por sitio</h2>
+    <p class="faint small">Para sitios exigentes (“este banco no acepta símbolos”). El generador las aplica según la URL del login.</p>
+    <div class="panel group">
+      @for (r of s().siteRules; track r.domain) {
+        <div class="opt">
+          <div class="ot"><b class="mono">{{ r.domain }}</b>
+            <span class="faint small">{{ r.rule.symbols === false ? 'Sin símbolos' : 'Con símbolos' }}{{ r.rule.length ? ' · ' + r.rule.length + ' caracteres' : '' }}{{ r.rule.maxLength ? ' · máximo ' + r.rule.maxLength : '' }}</span></div>
+          <button class="btn icon sm ghost" (click)="removeRule(r.domain)"><km-icon name="trash" [size]="14" /></button>
+        </div>
+      }
+      <form class="rule-form" (ngSubmit)="addRule()">
+        <input class="input mono" name="dom" [(ngModel)]="newRule.domain" placeholder="bancoejemplo.com.mx" />
+        <label class="check small"><input type="checkbox" name="sym" [ngModel]="newRule.rule.symbols !== false" (ngModelChange)="newRule.rule.symbols = $event" /> Símbolos</label>
+        <input class="input num" type="number" name="ml" min="4" max="128" [(ngModel)]="newRule.rule.maxLength" placeholder="Máx." />
+        <button class="btn sm" [disabled]="!newRule.domain.trim()">Agregar</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Importar / exportar -->
+  <section id="importar" class="sec">
+    <h2>Importar y exportar</h2>
+    <div class="grid-2">
+      <div class="panel box">
+        <h3><km-icon name="upload" [size]="16" /> Importar</h3>
+        <p class="faint small">SafeInCloud (XML), Bitwarden (JSON sin cifrar), Chrome/Edge (CSV) o un respaldo .keyme. Todo se procesa en este dispositivo.</p>
+        <label class="btn file-btn"><km-icon name="file" [size]="16" /> Elegir archivo<input type="file" accept=".xml,.json,.csv,.keyme" (change)="pickImport($event)" hidden /></label>
+        @if (importFile(); as f) {
+          <div class="imp">
+            <b>{{ f.name }}</b>
+            @if (importNeedsPassword()) {
+              <form class="inline-form" (ngSubmit)="unlockKeyme()">
+                <div class="field"><label>Contraseña de la exportación</label><input type="password" class="mono" name="ip" [(ngModel)]="importPassword" /></div>
+                <button class="btn" [disabled]="importBusy()">@if (importBusy()) { <span class="spinner"></span> } Abrir</button>
+              </form>
+            }
+            @if (importPreview(); as p) {
+              <p class="small">{{ p.entries.length }} elementos encontrados{{ p.skipped ? ' · ' + p.skipped + ' omitidos' : '' }}{{ duplicates() ? ' · ' + duplicates() + ' ya existen (se omiten)' : '' }}.
+                @for (w of p.warnings; track w) { {{ w }}. }</p>
+              @if (!p.warnings.length) {
+                <div class="field"><label>Guardar en el espacio</label>
+                  <select [(ngModel)]="importSpace" (ngModelChange)="pickSpaceAgain()">
+                    <option [ngValue]="null">Sin espacio</option>
+                    @for (o of store.spaces(); track o.id) { <option [ngValue]="o.id">{{ o.name }}</option> }
+                  </select>
+                </div>
+              }
+              <div class="row">
+                <button class="btn primary" (click)="doImport()" [disabled]="importBusy() || !p.entries.length">Importar {{ p.entries.length - duplicates() }}</button>
+                <button class="btn ghost" (click)="importFile.set(null); importPreview.set(null)">Cancelar</button>
+              </div>
+              <p class="faint tiny">Después de importar, borra el archivo original: está sin cifrar.</p>
+            }
+          </div>
+        }
+      </div>
+      <div class="panel box">
+        <h3><km-icon name="download" [size]="16" /> Exportar .keyme</h3>
+        <p class="faint small">Respaldo cifrado con una contraseña de exportación (Argon2id + XChaCha20). Guárdalo fuera de este equipo.</p>
+        <form class="inline-form" (ngSubmit)="doExport()">
+          <div class="field"><label>Contraseña de exportación</label><input type="password" class="mono" name="ep" [(ngModel)]="exportPassword" autocomplete="new-password" /></div>
+          <div class="field"><label>Repítela</label><input type="password" class="mono" name="ep2" [(ngModel)]="exportConfirm" autocomplete="new-password" /></div>
+          <button class="btn" [disabled]="exportBusy() || !exportPassword || exportPassword !== exportConfirm">@if (exportBusy()) { <span class="spinner"></span> } Descargar respaldo</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dispositivos -->
+  <section id="dispositivos" class="sec">
+    <div class="sec-head"><h2>Dispositivos</h2><button class="btn sm ghost" (click)="loadServer()"><km-icon name="sync" [size]="14" /></button></div>
+    @if (serverError()) { <p class="faint">{{ serverError() }}</p> }
+    @if (devices(); as list) {
+      <div class="panel group">
+        @for (d of list; track d.id) {
+          <div class="opt" [class.revoked]="d.revoked_at">
+            <km-icon [name]="(d.user_agent ?? '').includes('Android') || (d.user_agent ?? '').includes('iPhone') ? 'phone' : 'devices'" [size]="18" />
+            <div class="ot">
+              @if (renaming() === d.id) {
+                <input class="input" [(ngModel)]="renameValue" (keydown.enter)="rename(d)" (blur)="rename(d)" autofocus />
+              } @else {
+                <b>{{ d.name }} @if (d.current) { <span class="chip accent">Este</span> } @if (d.revoked_at) { <span class="chip danger">Revocado</span> }</b>
+              }
+              <span class="faint small">Último acceso {{ when(d.last_seen_at) }}{{ d.last_ip ? ' · ' + d.last_ip : '' }}</span>
+            </div>
+            @if (!d.revoked_at) {
+              <button class="btn icon sm ghost" (click)="renaming.set(d.id); renameValue = d.name" title="Renombrar"><km-icon name="edit" [size]="14" /></button>
+              @if (!d.current) { <button class="btn sm danger" (click)="revoke(d)">Revocar</button> }
+            }
+          </div>
+        }
+      </div>
+      <p class="faint small">Revocar corta el acceso al servidor y, la próxima vez que ese dispositivo se conecte, borra su copia local.</p>
+    }
+  </section>
+
+  <!-- Registro -->
+  <section id="registro" class="sec">
+    <h2>Registro de actividad</h2>
+    @if (audit(); as events) {
+      <div class="panel log">
+        @for (ev of events; track ev.id) {
+          <div class="ev" [class.bad]="ev.event === 'login_failed' || ev.event === 'setup_rejected'">
+            <span class="dot"></span>
+            <b>{{ eventLabel(ev.event) }}</b>
+            <span class="faint small grow">{{ ev.device ?? '' }}</span>
+            <span class="faint small mono">{{ ev.ip }}</span>
+            <span class="faint small">{{ when(ev.at) }}</span>
+          </div>
+        } @empty { <p class="faint pad">Sin eventos.</p> }
+      </div>
+    }
+  </section>
+
+  <!-- Apariencia -->
+  <section id="apariencia" class="sec">
+    <h2>Apariencia</h2>
+    <div class="seg">
+      <button [class.on]="s().theme === 'dark'" (click)="save({ theme: 'dark' })"><km-icon name="moon" [size]="14" /> Oscuro</button>
+      <button [class.on]="s().theme === 'light'" (click)="save({ theme: 'light' })"><km-icon name="sun" [size]="14" /> Claro</button>
+      <button [class.on]="s().theme === 'system'" (click)="save({ theme: 'system' })">Sistema</button>
+    </div>
+  </section>
+
+  <section class="sec about">
+    <p class="faint small">Servidor: <span class="mono">{{ origin }}</span> · {{ store.entries().length }} elementos · {{ store.pending() }} cambios pendientes</p>
+    @if (store.undecryptable()) { <p class="small warn-t">{{ store.undecryptable() }} registro(s) locales no se pudieron descifrar.</p> }
+    <button class="btn sm ghost danger" (click)="forget()">Olvidar este dispositivo</button>
+  </section>
+</div>

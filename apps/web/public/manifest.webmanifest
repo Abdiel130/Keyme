@@ -1,0 +1,25 @@
+{
+  "name": "Keyme",
+  "short_name": "Keyme",
+  "description": "Gestor de contraseñas personal, autohospedado y zero-knowledge.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "lang": "es-MX",
+  "background_color": "#120f0d",
+  "theme_color": "#120f0d",
+  "categories": ["security", "productivity", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Cartera", "url": "/tarjetas", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Generador", "url": "/generador", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

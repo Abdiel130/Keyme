@@ -159,6 +159,20 @@ cd apps/web && npx ng serve      # http://localhost:4470, proxy /api → :8470
 ./up.sh --test                   # todo dentro de Docker, incluida la API
 ```
 
+### Control de versiones
+
+Para actualizar la versión del proyecto de forma consistente en todos los archivos (`apps/web/package.json`, `packages/crypto/package.json`, `packages/models/package.json`, `package-lock.json`, `apps/api/config/keyme.php` —la que anuncia `/api/v1/status`—, `CHANGELOG.md` y `README.md`):
+
+```bash
+./up-version.sh 1.2.0          # pasando la versión como argumento
+# o bien
+./up-version.sh                # sugiere la siguiente según [Unreleased] y pide confirmarla
+```
+
+> **Nota obligatoria:** Cada cambio final debe utilizar este script para asegurar que la versión esté sincronizada en todo el proyecto.
+
+El script es **todo o nada**: si algo no cuadra no toca ningún archivo. Se niega si la versión no es mayor que la actual, si ya existe en el changelog o si `[Unreleased]` está vacío. Lo escrito en `[Unreleased]` pasa tal cual a `## [X.Y.Z] - AAAA-MM-DD` y `[Unreleased]` queda vacío para lo siguiente.
+
 ## Hoja de ruta
 
 - **Fase 1:** base segura y PWA. Hecho.
@@ -168,3 +182,8 @@ cd apps/web && npx ng serve      # http://localhost:4470, proxy /api → :8470
 ## Seguridad
 
 Ver [SECURITY.md](SECURITY.md), [docs/security.md](docs/security.md) y [docs/format.md](docs/format.md).
+
+## Licencia y versión
+
+- Licencia: [MIT](LICENSE).
+- Versión actual: **1.0.1** (Ver [CHANGELOG.md](CHANGELOG.md) para más detalles).

@@ -1,86 +1,113 @@
 # Changelog
 
-Todos los cambios relevantes de Keyme se documentan en este archivo.
+Todos los cambios notables en este proyecto serán documentados en este archivo.
 
-El formato sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico 2.0.0](https://semver.org/lang/es/).
+El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
+y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-### Added
+Keyme ya se instala con un toque y se mantiene al día solo. El botón
+"Instalar app" aparece donde lo necesitas, y cada dispositivo recibe las
+versiones nuevas sin que tengas que hacer nada. En el servidor, un solo
+comando respalda, baja los últimos parches de seguridad y reinicia.
 
-- Botón **Instalar app** en la pantalla de desbloqueo, la barra lateral y *Ajustes → App*. Usa el diálogo nativo en Chrome, Edge y Android, y muestra instrucciones en iPhone y Firefox.
-- Actualización automática de la app: busca versiones nuevas al abrirse, al volver a primer plano, al recuperar conexión y cada 15 minutos. Se aplica al momento con el vault bloqueado; con el vault abierto se ofrece en un aviso y se aplica en el siguiente bloqueo.
-- Sección *Ajustes → App* con la versión instalada y el botón *Buscar* actualizaciones.
-- `./up.sh --update`: respalda, descarga el código y las imágenes base más recientes, reconstruye y reinicia.
+### Added
+- **Botón "Instalar app"**: aparece en la pantalla de desbloqueo, en la barra
+  lateral y en Ajustes › App mientras uses Keyme desde el navegador. En
+  Chrome, Edge y Android abre el diálogo de instalación; en iPhone y Firefox
+  te muestra los pasos. Ya instalada, el botón desaparece.
+- **Actualización automática**: la app busca versiones nuevas al abrirla, al
+  volver a ella, al recuperar la conexión y cada 15 minutos. Con el vault
+  bloqueado se actualiza al momento; con el vault abierto te avisa y se
+  actualiza en el siguiente bloqueo, así nunca pierdes lo que estabas
+  editando.
+- **Ajustes › App**: muestra la versión instalada y tiene un botón para
+  buscar actualizaciones en ese momento.
+- **`./up.sh --update`**: respalda, baja la última versión del código y las
+  imágenes con los parches de seguridad más recientes, reconstruye y
+  reinicia el servidor.
+- **`./up-version.sh`**: sube la versión de todo el proyecto de una vez y
+  pasa lo escrito en [Unreleased] a la nueva versión.
 
 ### Changed
-
-- La API vuelve a la etiqueta `php:8.5-fpm-alpine` para recibir parches con `./up.sh --update`. El build falla si PHP es menor que 8.5.12 (`PHP_MIN_VERSION`).
-- nginx pasa de `1.27-alpine` a `stable-alpine`.
+- **Parches de PHP sin editar archivos**: la API vuelve a seguir PHP 8.5 y
+  recibe cada parche con `./up.sh --update`, pero se niega a construirse con
+  una versión menor a 8.5.12, la que corrige PHP2Shell.
+- **nginx al día**: pasa de la versión 1.27 a la estable.
 
 ## [1.0.1] - 2026-10-24
 
-### Changed
+Keyme queda protegido contra PHP2Shell, la vulnerabilidad crítica de PHP de
+octubre, y sus direcciones internas pasan a inglés. Por fuera todo se ve
+igual.
 
-- Rutas de la app en inglés: `/new/:kind`, `/item/:id/edit`, `/wallet`, `/generator`, `/health` y `/settings`. Los marcadores o accesos directos con las rutas anteriores (`/nuevo`, `/tarjetas`, `/ajustes`…) abren el inicio.
+### Changed
+- **Direcciones de la app en inglés**: Nuevo, Editar, Cartera, Generador,
+  Salud y Ajustes ahora viven en `/new`, `/edit`, `/wallet`, `/generator`,
+  `/health` y `/settings`. Un marcador o acceso directo con la dirección
+  anterior te lleva al inicio.
 
 ### Security
-
-- Imagen de la API fijada en `php:8.5.12-fpm-alpine`, que corrige PHP2Shell (CVE-2026-109618 y CVE-2026-109619).
-- `session.upload_progress.enabled` y `fatal_error_backtraces` desactivados en `php.ini` como defensa adicional.
+- **Protección contra PHP2Shell** (CVE-2026-109618 y CVE-2026-109619): el
+  servidor usa PHP 8.5.12, que corrige el fallo, y además apaga las dos
+  funciones de PHP por donde entraba el ataque. Keyme no las usaba.
 
 ## [1.0.0] - 2026-10-24
 
-Primera versión estable. Reemplaza a SafeInCloud como gestor de contraseñas personal: autohospedado, zero-knowledge, offline-first y accesible solo por Tailscale.
+Primera versión de Keyme, el gestor de contraseñas que reemplaza a
+SafeInCloud. Vive en tu propia PC, solo lo ven tus equipos de Tailscale y
+funciona sin conexión. Todo se cifra en tu dispositivo: el servidor guarda
+cajas cerradas y nunca ve tu contraseña maestra ni tus datos.
 
 ### Added
-
-- API en Laravel 13 (PHP 8.5-FPM) con PostgreSQL 17 y tokens Sanctum por dispositivo que expiran a los 30 días.
-- Vault de un solo usuario creado con un token de instalación de un solo uso.
-- Sincronización por revisiones con `base_revision`: un conflicto responde `409` con la versión del servidor.
-- Borrado lógico con purga automática a los 30 días y resincronización completa cuando un dispositivo queda atrás del horizonte de purga.
-- Lista de dispositivos con revocación remota y registro de actividad.
-- Paquete `@keyme/crypto`: Argon2id, XChaCha20-Poly1305, `crypto_secretstream` para adjuntos y formato de blob v1 fijado con vectores de prueba.
-- Paquete `@keyme/models`: tipos de elemento, validaciones, coincidencia de URL, búsqueda difusa y UUIDv7.
-- PWA en Angular 22 instalable en PC y teléfono.
-- Funcionamiento offline-first con copia local cifrada en IndexedDB y cola de cambios que sube cuando el servidor está disponible.
-- Resolución de conflictos entre dispositivos: gana la edición más reciente y la otra pasa al historial.
-- Tipos de elemento: logins, tarjetas, documentos (INE, CURP, RFC, NSS, pasaporte, licencia), identidades, notas seguras y Wi-Fi con código QR.
-- Espacios con color e ícono (Personal, Escuela y Trabajo de inicio).
-- Cuentas vinculadas ("inicia sesión con Google") con lista de servicios dependientes.
-- Cartera de tarjetas con número oculto, copia por campo, marca de CVV dinámico y acceso a la app del banco.
-- Aviso de documentos por vencer.
-- Generador de contraseñas aleatorias y de frases en español (4096 palabras), con reglas por sitio.
-- Códigos 2FA (TOTP) en vivo, lectura de QR y códigos de recuperación.
-- Salud del vault: contraseñas débiles, repetidas y antiguas.
-- Historial de contraseñas por elemento.
-- Adjuntos cifrados (fotos y PDF).
-- Importación desde SafeInCloud (XML), Bitwarden (JSON) y Chrome/Edge (CSV), procesada en el navegador.
-- Exportación cifrada `.keyme` con contraseña propia.
-- Kit de emergencia en PDF generado en el cliente.
-- Paleta de comandos `Ctrl K` y atajos de teclado (`N`, `/`, `Ctrl L`).
-- Diseño "Bóveda cálida" con modo oscuro y claro, adaptado a escritorio y móvil.
-- Stack en Docker Compose: PostgreSQL, API, scheduler, nginx y respaldos.
-- `up.sh` para montar todo con un comando, con formulario `--setup` y opciones `--build`, `--tailscale`, `--status`, `--backup`, `--restore`, `--test`, `--new-setup-token`, `--logs` y `--down`.
-- Publicación en el tailnet con `tailscale serve` en un puerto HTTPS propio (`KEYME_TS_PORT`, `8443` por defecto).
-- Respaldos diarios automáticos (pg_dump + adjuntos) con retención configurable.
-- Pruebas: 12 de criptografía, 7 de modelos y 16 de API (`./up.sh --test`).
-- Documentación: `README.md` con guía de primer uso, `docs/security.md`, `docs/format.md` y `SECURITY.md`.
+- **Tu vault con una sola contraseña**: lo creas una vez con el token que te
+  da `./up.sh --setup` y una contraseña maestra que nunca sale de tu
+  dispositivo. Al terminar descargas el kit de emergencia en PDF para
+  escribirla a mano.
+- **Funciona sin conexión**: cada dispositivo guarda una copia cifrada. Lo
+  que cambies sin red se sube solo cuando el servidor vuelve, y si dos
+  dispositivos editan lo mismo gana el cambio más reciente sin perder el
+  otro: queda en el historial.
+- **Todo tipo de datos**: logins, tarjetas, documentos (INE, CURP, RFC, NSS,
+  pasaporte, licencia), identidades, notas seguras y redes Wi-Fi con su
+  código QR. Cada uno guarda su historial de contraseñas y sus adjuntos
+  cifrados.
+- **Espacios**: separa Personal, Escuela y Trabajo, o los que crees, cada uno
+  con su color e ícono.
+- **Cuentas vinculadas**: anota que Spotify entra con tu cuenta de Google, y
+  la ficha de Google te muestra todo lo que depende de ella.
+- **Cartera de tarjetas**: tus tarjetas dibujadas, el número oculto hasta que
+  lo tocas, copia de cada dato con un toque y acceso a la app del banco.
+- **Documentos por vencer**: el inicio te avisa 30 días antes.
+- **Generador**: contraseñas al azar o frases en español fáciles de
+  recordar, con reglas por sitio.
+- **Códigos 2FA**: el código del momento siempre a la vista, lectura de QR
+  desde una captura y códigos de recuperación que se marcan al usarse.
+- **Salud del vault**: encuentra contraseñas débiles, repetidas, viejas o
+  filtradas en internet, y le pone calificación a cada espacio.
+- **Importar y exportar**: trae todo desde SafeInCloud, Bitwarden o Chrome, y
+  saca una copia `.keyme` cifrada con su propia contraseña.
+- **Desbloqueo con Windows Hello**: huella, rostro o PIN; cada 14 días te
+  pide la contraseña maestra para que no la olvides.
+- **Dispositivos y actividad**: ves qué equipos tienen acceso, cierras la
+  sesión de uno a distancia y revisas el registro de actividad.
+- **Rápido con el teclado**: `Ctrl K` busca y copia sin abrir nada, `N` crea
+  un elemento y `Ctrl L` bloquea.
+- **Diseño propio**: modo oscuro y claro, cómodo en computadora y teléfono.
+- **Un comando para todo**: `./up.sh` monta el servidor completo; `--setup`
+  pregunta lo necesario en un formulario y genera las contraseñas del
+  servidor, `--tailscale` lo publica en tu red, y los respaldos son diarios
+  y automáticos, con `--backup` y `--restore` a la mano.
 
 ### Security
-
-- Cifrado de extremo a extremo: el servidor nunca recibe la contraseña maestra ni datos en claro.
-- Derivación de llaves con Argon2id (64 MiB, 3 iteraciones) y `crypto_kdf_derive_from_key`; Vault Key de 32 bytes envuelta con XChaCha20-Poly1305.
-- Criptografía aislada en un Web Worker; al bloquear, las llaves se borran y el worker termina.
-- Desbloqueo con Windows Hello mediante WebAuthn PRF, con contraseña maestra obligatoria cada 14 días.
-- Cambio de contraseña maestra y rotación de la Vault Key con re-cifrado completo; los demás dispositivos lo detectan y se bloquean.
-- Bloqueo por inactividad, bloqueo opcional al ocultar la pestaña y limpieza del portapapeles.
-- Revisión de filtraciones en Have I Been Pwned con k-anonymity (solo se envían 5 caracteres del hash SHA-1).
-- Límite de intentos de autenticación: 5/min por IP y 15/min en total.
-- nginx solo en `127.0.0.1`, con CSP estricta, HSTS y sin logs de acceso; acceso remoto solo dentro del tailnet, nunca por Funnel.
-- Keyme en su propio origen (host + puerto) para aislar su almacenamiento, service worker y credenciales WebAuthn de otros proyectos.
-- `.env` con permisos `600` y secretos generados automáticamente.
-
-[Unreleased]: https://github.com/Abdiel130/Keyme/compare/v1.0.1...HEAD
-[1.0.1]: https://github.com/Abdiel130/Keyme/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/Abdiel130/Keyme/releases/tag/v1.0.0
+- **Cifrado de extremo a extremo**: Argon2id y XChaCha20-Poly1305 con
+  libsodium. El servidor no puede leer nada aunque alguien lo robe.
+- **Bloqueo automático**: por inactividad y, si lo activas, al ocultar la
+  ventana. El portapapeles se limpia solo.
+- **Solo dentro de tu red**: el servidor no escucha fuera de la PC y llega a
+  tus otros equipos únicamente por Tailscale, en su propio puerto y con
+  HTTPS.
+- **Revisión de filtraciones sin exponerte**: a Have I Been Pwned solo viajan
+  5 caracteres del hash de cada contraseña.
+- **Límite de intentos**: 5 por minuto para adivinar la contraseña.

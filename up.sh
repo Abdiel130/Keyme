@@ -185,6 +185,7 @@ ensure_env() {
   [[ "$(env_get APP_KEY)" == base64:* ]] || { env_set APP_KEY "base64:$(head -c 32 /dev/urandom | base64)"; info "APP_KEY generada."; }
   [[ -n "$(env_get KEYME_SETUP_TOKEN)" ]] || env_set KEYME_SETUP_TOKEN "$(new_setup_token)"
   [[ -n "$(env_get KEYME_PORT)" ]] || env_set KEYME_PORT 8470
+  [[ -n "$(env_get KEYME_TS_PORT)" ]] || env_set KEYME_TS_PORT 8443
   [[ "$(env_get HOST_UID)" == "$(id -u)" ]] || { env_set HOST_UID "$(id -u)"; env_set HOST_GID "$(id -g)"; }
   mkdir -p "$(backup_dir)"
 }
@@ -291,15 +292,32 @@ setup_tailscale() {
   dns="$(tailscale_dns)"
   [[ -n "$dns" ]] || { warn "No obtuve el nombre DNS del equipo. ¿MagicDNS está activo en tu tailnet?"; return 1; }
 
-  info "Publicando http://localhost:$(port) como https://$dns (solo dentro del tailnet)..."
-  if ! ts serve --bg --https=443 "http://localhost:$(port)" >/dev/null 2>&1; then
+  # Cada proyecto en su propio puerto HTTPS: el navegador aísla por origen
+  # (host + puerto), no por ruta. Una ruta tipo /keyme compartiría almacenamiento,
+  # service worker y credenciales WebAuthn con lo que viva en el mismo host.
+  local ts_port url previous
+  ts_port="$(env_get KEYME_TS_PORT)"
+  ts_port="${ts_port:-8443}"
+  url="https://$dns"
+  [[ "$ts_port" == 443 ]] || url="$url:$ts_port"
+
+  info "Publicando http://localhost:$(port) como $url (solo dentro del tailnet)..."
+  if ! ts serve --bg --https="$ts_port" "http://localhost:$(port)" >/dev/null 2>&1; then
     warn "tailscale serve falló. Activa en https://login.tailscale.com/admin/dns: MagicDNS y 'HTTPS Certificates'."
-    ts serve --bg --https=443 "http://localhost:$(port)" || true
+    ts serve --bg --https="$ts_port" "http://localhost:$(port)" || true
     return 1
   fi
-  env_set APP_URL "https://$dns"
-  env_set KEYME_TAILNET_URL "https://$dns"
-  ok "Keyme en tu tailnet: ${BOLD}https://$dns${RESET}"
+  # Si Keyme estaba en otro puerto, se libera para no dejar dos entradas.
+  previous="$(env_get KEYME_TAILNET_URL)"
+  if [[ "$previous" == "https://$dns"* && "$previous" != "$url" ]]; then
+    local old_port="${previous##*:}"
+    [[ "$old_port" =~ ^[0-9]+$ ]] || old_port=443
+    ts serve --https="$old_port" off >/dev/null 2>&1 || true
+    warn "Keyme se movió de $previous a $url: en cada dispositivo vuelve a iniciar sesión e instala la app desde la nueva URL."
+  fi
+  env_set APP_URL "$url"
+  env_set KEYME_TAILNET_URL "$url"
+  ok "Keyme en tu tailnet: ${BOLD}$url${RESET}"
   info "Nada de esto es público: 'serve' (no 'funnel') solo acepta equipos de tu red Tailscale."
 }
 
@@ -326,6 +344,12 @@ setup_env() {
   ask_port p "Puerto local" "$(port)"
   env_set KEYME_PORT "$p"
   [[ "$(env_get APP_URL)" == http://localhost:* || -z "$(env_get APP_URL)" ]] && env_set APP_URL "http://localhost:$p"
+  while true; do
+    ask p "Puerto HTTPS en Tailscale (443 queda libre para otros proyectos)" "$(env_get KEYME_TS_PORT)"
+    [[ "$p" == 443 ]] || { [[ "$p" =~ ^[0-9]+$ ]] && (( p >= 1024 && p <= 65535 )); } && break
+    warn "Puerto inválido: $p (usa 443 o 1024-65535)"
+  done
+  env_set KEYME_TS_PORT "$p"
 
   echo
   echo "  ${BOLD}Base de datos${RESET}"
@@ -467,7 +491,9 @@ show_status() {
   if [[ -n "$(tailscale_bin)" ]]; then
     local dns
     dns="$(tailscale_dns || true)"
-    [[ -n "$dns" ]] && info "Tailnet: https://$dns" || info "Tailscale sin sesión."
+    if [[ -z "$dns" ]]; then info "Tailscale sin sesión."
+    elif [[ -n "$(env_get KEYME_TAILNET_URL)" ]]; then info "Tailnet: $(env_get KEYME_TAILNET_URL)"
+    else info "Tailnet: sin publicar (./up.sh --tailscale)"; fi
   fi
   local last
   last="$(ls -1t "$(backup_dir)"/keyme-*.tar 2>/dev/null | head -n1 || true)"
@@ -509,7 +535,7 @@ case "$ACTION" in
     ensure_env; setup_tailscale || exit 1
     # La API lee APP_URL al arrancar: recrearla si ya estaba corriendo.
     if [[ -n "$(docker compose ps -q api 2>/dev/null)" ]]; then
-      docker compose up -d api scheduler >/dev/null && ok "API recargada con la nueva URL."
+      docker compose up -d api scheduler >/dev/null 2>&1 && ok "API recargada con la nueva URL."
     fi
     exit 0 ;;
   test)      ensure_env; run_tests; exit 0 ;;

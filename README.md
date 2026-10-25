@@ -22,7 +22,45 @@ El asistente:
 
 La contraseña maestra **no** se pide aquí. La eliges en la PWA y nunca sale de tu dispositivo.
 
-Luego abre `http://localhost:8470` (o la URL `https://<tu-pc>.<tailnet>.ts.net`) e instala la app: menú del navegador → *Instalar Keyme*.
+Después sigue [Primer uso](#primer-uso).
+
+## Primer uso
+
+Usa siempre la **URL del tailnet** (`https://<tu-pc>.<tailnet>.ts.net:8443`), también en la PC del servidor. El navegador guarda la copia local del vault y la llave de Windows Hello por origen (host + puerto): `localhost:8470` y la URL del tailnet cuentan como dos dispositivos distintos. `./up.sh --status` muestra la URL y el token.
+
+### 1. Crear el vault (una sola vez)
+
+1. Abre la URL. Como el vault aún no existe, aparece la pantalla **Bienvenido a tu bóveda** → *Comenzar*.
+2. **Token de instalación:** pega el token que imprimió `./up.sh --setup` (formato `km-setup-…`). Pon un nombre al dispositivo, por ejemplo "PC gamer".
+3. **Contraseña maestra:** escríbela dos veces. Debe llegar al nivel "Buena" o mejor. *Sugerir una frase* genera 5 palabras en español al azar, más fáciles de recordar que una contraseña corta. Marca la casilla "Entiendo que si la olvido…" → *Crear mi vault*.
+   - Tarda unos segundos a propósito: Argon2id hace lento cada intento de adivinarla.
+   - Nadie puede recuperarla, ni el servidor ni los respaldos. Si la olvidas, el vault es irrecuperable.
+4. **Kit de emergencia:** *Descargar kit de emergencia* baja `Keyme-kit-de-emergencia.pdf`. Imprímelo, escribe la contraseña maestra **a mano** en el recuadro y guárdalo en un lugar físico seguro. El PDF no contiene datos del vault: solo la URL del servidor e instrucciones de recuperación. No lo guardes con la contraseña escrita en la computadora ni en la nube.
+5. *Entrar a mi vault*. Keyme crea los espacios Personal, Escuela y Trabajo.
+
+Si eliges "Lo haré después", el kit sigue disponible en *Ajustes → Seguridad*.
+
+### 2. Instalar la app
+
+- **PC (Chrome o Edge):** ícono de instalar en la barra de direcciones, o menú → *Instalar Keyme*.
+- **Teléfono:** activa Tailscale, abre la misma URL en Chrome, inicia sesión con la contraseña maestra y elige menú → *Agregar a pantalla principal* (o *Instalar app*).
+
+Cada dispositivo nuevo pide solo la contraseña maestra. El token de instalación ya no sirve después del primer uso.
+
+### 3. Configurar
+
+- **Windows Hello:** *Ajustes → Seguridad → Windows Hello*. Desbloquea con huella, rostro o PIN. Cada 14 días Keyme vuelve a pedir la contraseña maestra para que no la olvides.
+- **Importar desde SafeInCloud:** en SafeInCloud exporta a XML, luego en Keyme *Ajustes → Importar y exportar → SafeInCloud*. Al terminar, **borra el XML**: está sin cifrar.
+- **Bloqueo automático:** *Ajustes → Seguridad* (5 minutos por defecto).
+
+### Si algo sale mal
+
+| Problema | Qué hacer |
+|---|---|
+| "El token de instalación no coincide" | Cópialo de nuevo con `./up.sh --status`. |
+| Perdiste el token antes de crear el vault | `./up.sh --new-setup-token`. |
+| Olvidaste la contraseña maestra | Sin solución: por eso existe el kit de emergencia. |
+| El teléfono no abre la URL | Revisa que Tailscale esté activo en el teléfono y que la PC esté encendida. La app instalada funciona sin conexión con la última copia. |
 
 ## Comandos
 
@@ -43,6 +81,7 @@ Luego abre `http://localhost:8470` (o la URL `https://<tu-pc>.<tailnet>.ts.net`)
 
 - Nginx escucha **solo en `127.0.0.1`**. Nada entra desde la red local ni desde internet.
 - Desde otros dispositivos se entra por **Tailscale Serve**: HTTPS con certificado válido, visible solo dentro de tu tailnet. Keyme nunca usa Funnel.
+- Keyme se publica en su propio puerto HTTPS (`KEYME_TS_PORT`, por defecto `8443`) y deja `443` libre para otros proyectos. No se usa una ruta tipo `/keyme` porque el navegador aísla por origen (host + puerto), no por ruta: compartir host expondría la copia local del vault, el service worker y las credenciales de Windows Hello a cualquier otro proyecto en ese host.
 - En WSL, `up.sh` usa el `tailscale.exe` de Windows, porque Docker Desktop publica los puertos en el localhost de Windows.
 - Para el HTTPS del tailnet, activa *MagicDNS* y *HTTPS Certificates* en <https://login.tailscale.com/admin/dns>.
 - Si el servidor está apagado, cada dispositivo sigue funcionando con su copia local cifrada. Los cambios suben cuando el servidor vuelve.

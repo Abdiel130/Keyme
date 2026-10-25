@@ -6,6 +6,10 @@ El formato sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Changed
+
+- Rutas de la app en inglés: `/new/:kind`, `/item/:id/edit`, `/wallet`, `/generator`, `/health` y `/settings`. Los marcadores o accesos directos con las rutas anteriores (`/nuevo`, `/tarjetas`, `/ajustes`…) abren el inicio.
+
 ### Security
 
 - Imagen de la API fijada en `php:8.5.12-fpm-alpine`, que corrige PHP2Shell (CVE-2026-109618 y CVE-2026-109619).

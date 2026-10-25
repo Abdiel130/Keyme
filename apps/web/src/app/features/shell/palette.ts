@@ -96,13 +96,13 @@ export class Palette {
   private readonly allActions: Action[] = [
     ...(['login', 'card', 'note', 'document', 'identity', 'wifi'] as EntryKind[]).map((k) => ({
       id: `new-${k}`, icon: 'plus', label: `Nuevo: ${{ login: 'login', card: 'tarjeta', note: 'nota segura', document: 'documento', identity: 'identidad', wifi: 'red Wi-Fi' }[k]}`,
-      run: () => void this.router.navigate(['/nuevo', k]),
+      run: () => void this.router.navigate(['/new', k]),
     })),
-    { id: 'gen', icon: 'dice', label: 'Generar contraseña', run: () => void this.router.navigate(['/generador']) },
-    { id: 'wallet', icon: 'card', label: 'Abrir cartera', run: () => void this.router.navigate(['/tarjetas']) },
-    { id: 'health', icon: 'shield', label: 'Salud del vault', run: () => void this.router.navigate(['/salud']) },
-    { id: 'import', icon: 'upload', label: 'Importar desde SafeInCloud / Bitwarden / Chrome', run: () => void this.router.navigate(['/ajustes'], { fragment: 'importar' }) },
-    { id: 'settings', icon: 'sliders', label: 'Ajustes', run: () => void this.router.navigate(['/ajustes']) },
+    { id: 'gen', icon: 'dice', label: 'Generar contraseña', run: () => void this.router.navigate(['/generator']) },
+    { id: 'wallet', icon: 'card', label: 'Abrir cartera', run: () => void this.router.navigate(['/wallet']) },
+    { id: 'health', icon: 'shield', label: 'Salud del vault', run: () => void this.router.navigate(['/health']) },
+    { id: 'import', icon: 'upload', label: 'Importar desde SafeInCloud / Bitwarden / Chrome', run: () => void this.router.navigate(['/settings'], { fragment: 'import' }) },
+    { id: 'settings', icon: 'sliders', label: 'Ajustes', run: () => void this.router.navigate(['/settings']) },
     { id: 'sync', icon: 'sync', label: 'Sincronizar ahora', run: () => void this.store.sync() },
     { id: 'lock', icon: 'lock', label: 'Bloquear vault', run: () => void this.store.lock() },
   ];

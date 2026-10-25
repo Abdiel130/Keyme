@@ -28,7 +28,7 @@ export class Shell {
     { initialValue: this.router.url },
   );
   /** Páginas que ocupan todo el ancho (sin la lista). */
-  protected readonly full = computed(() => /^\/(tarjetas|generador|salud|ajustes)/.test(this.url()));
+  protected readonly full = computed(() => /^\/(wallet|generator|health|settings)/.test(this.url()));
   /** En móvil: ¿se ve el panel derecho en vez de la lista? */
   protected readonly detail = computed(() => this.url() !== '/' && !this.url().startsWith('/?'));
 
@@ -63,7 +63,7 @@ export class Shell {
   protected newEntry(kind: EntryKind): void {
     this.ui.newMenuOpen.set(false);
     this.ui.railOpen.set(false);
-    void this.router.navigate(['/nuevo', kind]);
+    void this.router.navigate(['/new', kind]);
   }
 
   protected onKey(e: KeyboardEvent): void {

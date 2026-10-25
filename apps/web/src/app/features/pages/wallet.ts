@@ -15,7 +15,7 @@ import { Icon } from '../../ui/icon';
     <div class="page">
       <div class="page-head">
         <div><p class="eyebrow">Acceso rápido</p><h1>Cartera</h1><p class="muted">Toca una tarjeta para ver sus datos. Copia con un toque; el portapapeles se limpia solo.</p></div>
-        <a class="btn" routerLink="/nuevo/card"><km-icon name="plus" [size]="16" /> Tarjeta</a>
+        <a class="btn" routerLink="/new/card"><km-icon name="plus" [size]="16" /> Tarjeta</a>
       </div>
 
       @if (cards().length) {
@@ -41,7 +41,7 @@ import { Icon } from '../../ui/icon';
           }
         </div>
       } @else {
-        <div class="empty panel"><km-icon name="card" [size]="30" /><h2>Sin tarjetas</h2><p>Agrega tus tarjetas para tenerlas a un toque.</p><a class="btn primary" routerLink="/nuevo/card">Agregar tarjeta</a></div>
+        <div class="empty panel"><km-icon name="card" [size]="30" /><h2>Sin tarjetas</h2><p>Agrega tus tarjetas para tenerlas a un toque.</p><a class="btn primary" routerLink="/new/card">Agregar tarjeta</a></div>
       }
 
       @if (docs().length) {

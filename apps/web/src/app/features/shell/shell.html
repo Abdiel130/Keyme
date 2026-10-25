@@ -24,9 +24,9 @@
     <nav class="nav">
       <button [class.on]="isActive({ type: 'all' })" (click)="pick({ type: 'all' })"><km-icon name="layers" [size]="17" /> Todo <span class="n">{{ ui.counts().all }}</span></button>
       <button [class.on]="isActive({ type: 'fav' })" (click)="pick({ type: 'fav' })"><km-icon name="star" [size]="17" /> Favoritos <span class="n">{{ ui.counts().fav || '' }}</span></button>
-      <a routerLink="/tarjetas" routerLinkActive="on" (click)="ui.railOpen.set(false)"><km-icon name="card" [size]="17" /> Cartera <span class="n">{{ ui.counts().kinds['card'] || '' }}</span></a>
-      <a routerLink="/salud" routerLinkActive="on" (click)="ui.railOpen.set(false)"><km-icon name="shield" [size]="17" /> Salud</a>
-      <a routerLink="/generador" routerLinkActive="on" (click)="ui.railOpen.set(false)"><km-icon name="dice" [size]="17" /> Generador</a>
+      <a routerLink="/wallet" routerLinkActive="on" (click)="ui.railOpen.set(false)"><km-icon name="card" [size]="17" /> Cartera <span class="n">{{ ui.counts().kinds['card'] || '' }}</span></a>
+      <a routerLink="/health" routerLinkActive="on" (click)="ui.railOpen.set(false)"><km-icon name="shield" [size]="17" /> Salud</a>
+      <a routerLink="/generator" routerLinkActive="on" (click)="ui.railOpen.set(false)"><km-icon name="dice" [size]="17" /> Generador</a>
     </nav>
 
     <div class="group">
@@ -68,7 +68,7 @@
         <km-icon [name]="!store.online() || store.syncState() === 'offline' ? 'cloud-off' : 'sync'" [size]="15" [class.spin]="store.syncState() === 'syncing'" />
         {{ syncLabel() }}
       </button>
-      <a class="btn icon sm ghost" routerLink="/ajustes" routerLinkActive="on" title="Ajustes" (click)="ui.railOpen.set(false)"><km-icon name="sliders" [size]="17" /></a>
+      <a class="btn icon sm ghost" routerLink="/settings" routerLinkActive="on" title="Ajustes" (click)="ui.railOpen.set(false)"><km-icon name="sliders" [size]="17" /></a>
     </div>
   </aside>
   <div class="scrim" (click)="ui.railOpen.set(false)"></div>
@@ -90,9 +90,9 @@
 
   <nav class="tabbar">
     <a routerLink="/" [class.on]="!full() && !detail()" (click)="pick(ui.filter())"><km-icon name="layers" [size]="20" /><span>Vault</span></a>
-    <a routerLink="/tarjetas" routerLinkActive="on"><km-icon name="card" [size]="20" /><span>Cartera</span></a>
+    <a routerLink="/wallet" routerLinkActive="on"><km-icon name="card" [size]="20" /><span>Cartera</span></a>
     <button class="add" (click)="ui.newMenuOpen.set(!ui.newMenuOpen())" aria-label="Nuevo"><km-icon name="plus" [size]="22" [stroke]="2.2" /></button>
-    <a routerLink="/generador" routerLinkActive="on"><km-icon name="dice" [size]="20" /><span>Generar</span></a>
+    <a routerLink="/generator" routerLinkActive="on"><km-icon name="dice" [size]="20" /><span>Generar</span></a>
     <button (click)="ui.railOpen.set(true)"><km-icon name="menu" [size]="20" /><span>Más</span></button>
   </nav>
   @if (ui.newMenuOpen()) {

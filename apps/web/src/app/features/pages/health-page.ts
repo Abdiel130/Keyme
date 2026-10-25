@@ -66,7 +66,7 @@ type Tab = 'all' | 'pwned' | 'weak' | 'reused' | 'old';
       </h3>
       <div class="issues">
         @for (i of list(); track i.entry.id) {
-          <a class="issue panel" [routerLink]="['/item', i.entry.id, 'editar']">
+          <a class="issue panel" [routerLink]="['/item', i.entry.id, 'edit']">
             <km-avatar [entry]="i.entry" [size]="34" [ring]="ui.spaceById().get(i.entry.spaceId ?? '')?.color ?? null" />
             <span class="grow"><b>{{ i.entry.title }}</b><span class="faint small">{{ subtitle(i.entry) }}</span></span>
             <span class="tags">

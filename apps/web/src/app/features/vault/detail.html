@@ -5,7 +5,7 @@
       <span class="grow"></span>
       <button class="btn icon ghost" (click)="toggleFav()" [class.fav]="e.favorite" [title]="e.favorite ? 'Quitar de favoritos' : 'Favorito'"><km-icon name="star" /></button>
       <button class="btn icon ghost" (click)="duplicate()" title="Duplicar"><km-icon name="copy" /></button>
-      <a class="btn" [routerLink]="['/item', e.id, 'editar']"><km-icon name="edit" [size]="16" /> Editar</a>
+      <a class="btn" [routerLink]="['/item', e.id, 'edit']"><km-icon name="edit" [size]="16" /> Editar</a>
     </div>
 
     <header class="head">
@@ -44,7 +44,7 @@
           }
           @if (e.totp) { <div class="pad"><km-totp [secret]="e.totp" /></div> }
           @if (!e.username && !e.password && !e.totp && !provider()) {
-            <p class="faint pad">Sin credenciales. <a [routerLink]="['/item', e.id, 'editar']">Agregar</a></p>
+            <p class="faint pad">Sin credenciales. <a [routerLink]="['/item', e.id, 'edit']">Agregar</a></p>
           }
         </div>
         }

@@ -67,9 +67,9 @@ import { Icon } from '../../ui/icon';
       </section>
 
       <div class="actions">
-        <a class="action panel" routerLink="/salud"><km-icon name="shield" [size]="22" /><b>Revisar la salud del vault</b><span class="faint small">Repetidas, débiles y filtradas</span></a>
-        <a class="action panel" routerLink="/tarjetas"><km-icon name="card" [size]="22" /><b>Cartera</b><span class="faint small">Tus tarjetas a un toque</span></a>
-        <a class="action panel" routerLink="/ajustes" fragment="importar"><km-icon name="upload" [size]="22" /><b>Importar</b><span class="faint small">SafeInCloud, Bitwarden, Chrome</span></a>
+        <a class="action panel" routerLink="/health"><km-icon name="shield" [size]="22" /><b>Revisar la salud del vault</b><span class="faint small">Repetidas, débiles y filtradas</span></a>
+        <a class="action panel" routerLink="/wallet"><km-icon name="card" [size]="22" /><b>Cartera</b><span class="faint small">Tus tarjetas a un toque</span></a>
+        <a class="action panel" routerLink="/settings" fragment="import"><km-icon name="upload" [size]="22" /><b>Importar</b><span class="faint small">SafeInCloud, Bitwarden, Chrome</span></a>
       </div>
     </div>
   `,

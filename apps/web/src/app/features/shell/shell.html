@@ -1,0 +1,110 @@
+<div class="shell" [class.full]="full()" [class.detail]="detail()" [class.rail-open]="ui.railOpen()">
+  <aside class="rail">
+    <div class="brand">
+      <span class="mark"><km-icon name="key" [size]="17" [stroke]="2" /></span>
+      <span class="word">Keyme</span>
+      <button class="btn icon sm ghost" (click)="store.lock()" title="Bloquear (Ctrl+L)"><km-icon name="lock" [size]="16" /></button>
+    </div>
+
+    <button class="search-btn" (click)="ui.paletteOpen.set(true)">
+      <km-icon name="search" [size]="16" /> <span>Buscar y copiar…</span> <span class="kbd">Ctrl K</span>
+    </button>
+
+    <div class="new">
+      <button class="btn primary block" (click)="ui.newMenuOpen.set(!ui.newMenuOpen())"><km-icon name="plus" [size]="16" [stroke]="2.2" /> Nuevo</button>
+      @if (ui.newMenuOpen()) {
+        <div class="menu panel" role="menu">
+          @for (k of newKinds; track k.kind) {
+            <button role="menuitem" (click)="newEntry(k.kind)"><km-icon [name]="k.kind" [size]="16" /> {{ k.label }}</button>
+          }
+        </div>
+      }
+    </div>
+
+    <nav class="nav">
+      <button [class.on]="isActive({ type: 'all' })" (click)="pick({ type: 'all' })"><km-icon name="layers" [size]="17" /> Todo <span class="n">{{ ui.counts().all }}</span></button>
+      <button [class.on]="isActive({ type: 'fav' })" (click)="pick({ type: 'fav' })"><km-icon name="star" [size]="17" /> Favoritos <span class="n">{{ ui.counts().fav || '' }}</span></button>
+      <a routerLink="/tarjetas" routerLinkActive="on" (click)="ui.railOpen.set(false)"><km-icon name="card" [size]="17" /> Cartera <span class="n">{{ ui.counts().kinds['card'] || '' }}</span></a>
+      <a routerLink="/salud" routerLinkActive="on" (click)="ui.railOpen.set(false)"><km-icon name="shield" [size]="17" /> Salud</a>
+      <a routerLink="/generador" routerLinkActive="on" (click)="ui.railOpen.set(false)"><km-icon name="dice" [size]="17" /> Generador</a>
+    </nav>
+
+    <div class="group">
+      <p class="eyebrow">Espacios</p>
+      @for (s of store.spaces(); track s.id) {
+        <button class="space" [class.on]="isActive({ type: 'space', id: s.id })" (click)="pick({ type: 'space', id: s.id })" [style.--c]="s.color">
+          <span class="sw"><km-icon [name]="s.icon" [size]="14" /></span> {{ s.name }} <span class="n">{{ ui.counts().spaces[s.id] || '' }}</span>
+        </button>
+      }
+      @if (ui.counts().none) {
+        <button class="space" [class.on]="isActive({ type: 'space', id: null })" (click)="pick({ type: 'space', id: null })">
+          <span class="sw none"></span> Sin espacio <span class="n">{{ ui.counts().none }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="group">
+      <p class="eyebrow">Tipos</p>
+      @for (k of kinds; track k) {
+        @if (ui.counts().kinds[k]) {
+          <button [class.on]="isActive({ type: 'kind', kind: k })" (click)="pick({ type: 'kind', kind: k })"><km-icon [name]="k" [size]="16" /> {{ kindLabels[k] }} <span class="n">{{ ui.counts().kinds[k] }}</span></button>
+        }
+      }
+    </div>
+
+    @if (ui.topTags().length) {
+      <div class="group tags">
+        <p class="eyebrow">Etiquetas</p>
+        <div class="tag-cloud">
+          @for (t of ui.topTags(); track t[0]) {
+            <button class="chip" [class.accent]="isActive({ type: 'tag', tag: t[0] })" (click)="pick({ type: 'tag', tag: t[0] })">#{{ t[0] }}</button>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="foot">
+      <button class="sync" (click)="store.sync()" [attr.data-s]="store.online() ? store.syncState() : 'offline'" title="Sincronizar ahora">
+        <km-icon [name]="!store.online() || store.syncState() === 'offline' ? 'cloud-off' : 'sync'" [size]="15" [class.spin]="store.syncState() === 'syncing'" />
+        {{ syncLabel() }}
+      </button>
+      <a class="btn icon sm ghost" routerLink="/ajustes" routerLinkActive="on" title="Ajustes" (click)="ui.railOpen.set(false)"><km-icon name="sliders" [size]="17" /></a>
+    </div>
+  </aside>
+  <div class="scrim" (click)="ui.railOpen.set(false)"></div>
+
+  <section class="list-pane">
+    <km-entry-list />
+  </section>
+
+  <section class="main-pane">
+    @if (store.passwordChangedElsewhere()) {
+      <div class="banner warn"><km-icon name="alert" [size]="16" /> La contraseña maestra cambió en otro dispositivo. Bloquea y desbloquea con la nueva para seguir sincronizando.
+        <button class="btn sm" (click)="store.lock()">Bloquear</button></div>
+    } @else if (store.needsPassword()) {
+      <div class="banner warn"><km-icon name="alert" [size]="16" /> La sesión con el servidor caducó. Bloquea y desbloquea con tu contraseña maestra para volver a sincronizar.
+        <button class="btn sm" (click)="store.lock()">Bloquear</button></div>
+    }
+    <router-outlet />
+  </section>
+
+  <nav class="tabbar">
+    <a routerLink="/" [class.on]="!full() && !detail()" (click)="pick(ui.filter())"><km-icon name="layers" [size]="20" /><span>Vault</span></a>
+    <a routerLink="/tarjetas" routerLinkActive="on"><km-icon name="card" [size]="20" /><span>Cartera</span></a>
+    <button class="add" (click)="ui.newMenuOpen.set(!ui.newMenuOpen())" aria-label="Nuevo"><km-icon name="plus" [size]="22" [stroke]="2.2" /></button>
+    <a routerLink="/generador" routerLinkActive="on"><km-icon name="dice" [size]="20" /><span>Generar</span></a>
+    <button (click)="ui.railOpen.set(true)"><km-icon name="menu" [size]="20" /><span>Más</span></button>
+  </nav>
+  @if (ui.newMenuOpen()) {
+    <div class="sheet-scrim" (click)="ui.newMenuOpen.set(false)">
+      <div class="sheet panel" (click)="$event.stopPropagation()">
+        <p class="eyebrow">Nuevo elemento</p>
+        <div class="sheet-grid">
+          @for (k of newKinds; track k.kind) {
+            <button (click)="newEntry(k.kind)"><km-icon [name]="k.kind" [size]="22" /> {{ k.label }}</button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

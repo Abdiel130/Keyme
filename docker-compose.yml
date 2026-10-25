@@ -95,6 +95,8 @@ services:
     image: postgres:17-alpine
     container_name: keyme-backup
     restart: unless-stopped
+    # Los respaldos quedan a nombre de tu usuario, no de root
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
       PGHOST: db
       PGDATABASE: ${DB_DATABASE:-keyme}

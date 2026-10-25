@@ -1,0 +1,18 @@
+{
+  "name": "@keyme/crypto",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "vectors": "node --experimental-strip-types test/generate-vectors.ts"
+  },
+  "dependencies": {
+    "libsodium-wrappers-sumo": "^0.8.4"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.0"
+  }
+}

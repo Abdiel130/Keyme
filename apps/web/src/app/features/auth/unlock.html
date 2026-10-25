@@ -1,0 +1,82 @@
+<main class="auth">
+  <section class="art" aria-hidden="true">
+    <km-dial [busy]="busy()" [open]="opened()" [error]="shake()" />
+    <div class="art-copy">
+      <p class="eyebrow">Keyme</p>
+      <p class="quote">Bóveda cerrada.<br /><em>Solo tú tienes la combinación.</em></p>
+    </div>
+  </section>
+
+  <section class="pane unlock-pane">
+    @switch (store.state()) {
+      @case ('no-server') {
+        <div class="body">
+          <h1>No encuentro tu servidor</h1>
+          <p class="lead">Este navegador todavía no tiene una copia del vault y el servidor no responde. Revisa que la PC servidor esté encendida, que Docker esté arriba y que estés dentro de tu red Tailscale.</p>
+          <button class="btn primary lg" (click)="retry()"><km-icon name="sync" [size]="16" /> Reintentar</button>
+        </div>
+      }
+      @case ('revoked') {
+        <div class="body">
+          <h1>Dispositivo revocado</h1>
+          <p class="lead">Este dispositivo fue revocado desde otro, así que se borró su copia local. Tus datos siguen a salvo en el servidor.</p>
+          <button class="btn primary lg" (click)="retry()">Volver a iniciar sesión</button>
+        </div>
+      }
+      @default {
+        <form class="body" (ngSubmit)="submit()">
+          <div>
+            <p class="eyebrow">{{ hasLocal() ? 'Vault bloqueado' : 'Nuevo dispositivo' }}</p>
+            <h1>{{ hasLocal() ? 'Hola de nuevo' : 'Conecta este dispositivo' }}</h1>
+          </div>
+          <p class="lead">
+            @if (!hasLocal()) {
+              Escribe tu contraseña maestra para descargar tu vault cifrado a este dispositivo.
+            } @else if (store.keyRotatedElsewhere()) {
+              La llave del vault se rotó desde otro dispositivo. Escribe tu contraseña maestra para recibirla; tu copia local se reconstruye sola.
+            } @else if (prf() && passwordDue()) {
+              Han pasado {{ days }} días: escribe tu contraseña maestra para no olvidarla. Después podrás seguir usando Windows Hello.
+            } @else {
+              Escribe tu contraseña maestra para abrir tu vault.
+            }
+          </p>
+
+          <div class="pw">
+            <input #pw class="input mono" name="pw" [type]="show() ? 'text' : 'password'" [ngModel]="password()" (ngModelChange)="password.set($event)"
+                   autocomplete="current-password" autofocus placeholder="Contraseña maestra" [disabled]="busy()" aria-label="Contraseña maestra" />
+            <button class="btn primary go" [disabled]="!password() || busy()" aria-label="Desbloquear">
+              @if (busy()) { <span class="spinner"></span> } @else { <km-icon name="unlock" [size]="18" /> }
+            </button>
+          </div>
+          <label class="check small"><input type="checkbox" [checked]="show()" (change)="show.set(!show())" /> Mostrar contraseña</label>
+
+          @if (error()) {
+            <p class="error" role="alert"><km-icon name="alert" [size]="16" /> {{ error() }}</p>
+          }
+
+          @if (prf() && !passwordDue()) {
+            <div class="or">o</div>
+            <button type="button" class="btn lg hello" (click)="hello()" [disabled]="busy()"><km-icon name="fingerprint" [size]="20" /> Desbloquear con Windows Hello</button>
+          }
+
+          <p class="status" [class.off]="!store.online()">
+            <span class="dot"></span>
+            {{ store.online() ? 'En línea' : 'Sin conexión — puedes desbloquear con tu copia local' }}
+          </p>
+        </form>
+
+        @if (hasLocal()) {
+          <div class="links">
+            @if (!confirmForget()) {
+              <button class="btn sm ghost" (click)="confirmForget.set(true)">Olvidar este dispositivo</button>
+            } @else {
+              <span class="small muted">Se borra la copia local de este navegador; los cambios aún sin sincronizar se pierden. El servidor no se toca.</span>
+              <button class="btn sm danger" (click)="forget()">Borrar copia local</button>
+              <button class="btn sm ghost" (click)="confirmForget.set(false)">Cancelar</button>
+            }
+          </div>
+        }
+      }
+    }
+  </section>
+</main>

@@ -1,0 +1,234 @@
+@if (rev() > 0) {
+<form class="page" (ngSubmit)="save()" autocomplete="off">
+  <div class="topbar">
+    <button type="button" class="btn ghost" (click)="cancel()"><km-icon name="x" [size]="16" /> Cancelar</button>
+    <span class="grow eyebrow center">{{ isNew() ? 'Nuevo · ' : 'Editando · ' }}{{ kindLabel[draft.kind] }}</span>
+    <button class="btn primary" [disabled]="saving()"><km-icon name="check" [size]="16" /> Guardar <span class="kbd dark">Ctrl S</span></button>
+  </div>
+
+  <div class="title-row">
+    <span class="kind-ic"><km-icon [name]="draft.kind" [size]="22" /></span>
+    <input class="title-input" name="title" [(ngModel)]="d.title" (ngModelChange)="touch()" placeholder="{{ draft.kind === 'login' ? 'Nombre (p. ej. Google · Personal)' : 'Nombre' }}" autofocus maxlength="200" />
+    <button type="button" class="btn icon ghost" [class.fav]="draft.favorite" (click)="d.favorite = !d.favorite; touch()" title="Favorito"><km-icon name="star" /></button>
+  </div>
+
+  <div class="spaces">
+    @for (s of store.spaces(); track s.id) {
+      <button type="button" class="space" [class.on]="draft.spaceId === s.id" [style.--c]="s.color" (click)="d.spaceId = s.id; touch()">
+        <km-icon [name]="s.icon" [size]="14" /> {{ s.name }}
+      </button>
+    }
+    <button type="button" class="space" [class.on]="!draft.spaceId" (click)="d.spaceId = null; touch()">Sin espacio</button>
+  </div>
+
+  @switch (draft.kind) {
+    @case ('login') {
+      <section class="panel sec">
+        <div class="field">
+          <label for="siw"><km-icon name="link" [size]="14" /> ¿Cómo inicias sesión?</label>
+          <select id="siw" name="siw" [(ngModel)]="d.signInWith" (ngModelChange)="touch()">
+            <option [ngValue]="null">Con usuario y contraseña propios</option>
+            @for (l of logins(); track l.id) {
+              <option [ngValue]="l.id">Con {{ l.title }}{{ l.username ? ' — ' + l.username : '' }}</option>
+            }
+          </select>
+          @if (d.signInWith) { <span class="hint">Ej. “Iniciar sesión con Google”. Keyme te recordará qué cuenta usar.</span> }
+        </div>
+        <div class="field">
+          <label for="user">Usuario o correo</label>
+          <input id="user" name="user" [(ngModel)]="d.username" (ngModelChange)="touch()" autocomplete="off" spellcheck="false" />
+        </div>
+        @if (!d.signInWith || d.password) {
+          <div class="field">
+            <label for="pass">Contraseña</label>
+            <div class="input-wrap">
+              <input id="pass" name="pass" class="mono" [type]="showPass() ? 'text' : 'password'" [(ngModel)]="d.password" (ngModelChange)="touch()" autocomplete="new-password" spellcheck="false" />
+              <span class="adorn">
+                <button type="button" class="btn icon sm ghost" (click)="showPass.set(!showPass())"><km-icon [name]="showPass() ? 'eye-off' : 'eye'" [size]="16" /></button>
+                <button type="button" class="btn icon sm ghost" (click)="generate()" title="Generar"><km-icon name="dice" [size]="16" /></button>
+              </span>
+            </div>
+            <km-strength [value]="d.password" [inputs]="[d.username, d.title]" />
+            @if (siteRuleNote()) { <span class="hint"><km-icon name="info" [size]="12" /> {{ siteRuleNote() }}</span> }
+          </div>
+        }
+        @if (genOpen()) {
+          <div class="gen">
+            <span class="mono gen-val">{{ genPreview() }}</span>
+            <div class="gen-actions">
+              <button type="button" class="btn sm ghost" (click)="generate('random')">Aleatoria</button>
+              <button type="button" class="btn sm ghost" (click)="generate('passphrase')">Frase</button>
+              <button type="button" class="btn sm" (click)="generate()"><km-icon name="sync" [size]="14" /></button>
+              <button type="button" class="btn sm primary" (click)="useGenerated()">Usar</button>
+            </div>
+          </div>
+        }
+      </section>
+
+      <section class="panel sec">
+        <h3>Sitios y apps <span class="faint small">El autocompletado solo sugiere por coincidencia exacta</span></h3>
+        @for (u of login.urls; track $index; let i = $index) {
+          <div class="url-row">
+            <input class="input" [name]="'url' + i" [(ngModel)]="u.value" (blur)="urlBlur(u)" placeholder="https://accounts.google.com" spellcheck="false" />
+            <select class="input sel" [name]="'m' + i" [(ngModel)]="u.match" (ngModelChange)="touch()">
+              <option value="base">Dominio</option>
+              <option value="host">Host exacto</option>
+              <option value="regex">Regex</option>
+            </select>
+            <button type="button" class="btn icon ghost" (click)="removeUrl(i)"><km-icon name="x" [size]="16" /></button>
+          </div>
+        }
+        <button type="button" class="btn sm ghost add" (click)="addUrl()"><km-icon name="plus" [size]="14" /> Agregar sitio</button>
+        <div class="field">
+          <label for="pk">Apps Android (paquetes)</label>
+          <input id="pk" name="pk" class="mono" [ngModel]="packagesText()" (ngModelChange)="packagesText.set($event)" placeholder="com.spotify.music" spellcheck="false" />
+        </div>
+      </section>
+
+      <section class="panel sec">
+        <h3>Verificación en dos pasos</h3>
+        <div class="field">
+          <label for="totp">Secreto TOTP o enlace otpauth://
+            <label class="btn sm ghost push file-btn"><km-icon name="camera" [size]="14" /> Leer QR de una imagen<input type="file" accept="image/*" (change)="scanQr($event)" hidden /></label>
+          </label>
+          <input id="totp" name="totp" class="mono" [(ngModel)]="d.totp" (ngModelChange)="touch()" placeholder="JBSWY3DPEHPK3PXP" spellcheck="false" />
+          @if (!totpValid()) { <span class="hint bad">No es un secreto TOTP válido.</span> }
+          <span class="hint">Consejo: no guardes aquí el 2FA de tus cuentas más críticas (correo principal, banco).</span>
+        </div>
+        <div class="field">
+          <label for="rc">Códigos de recuperación (uno por línea)</label>
+          <textarea id="rc" name="rc" class="mono" rows="4" [ngModel]="codesText()" (ngModelChange)="codesText.set($event)"></textarea>
+        </div>
+      </section>
+    }
+
+    @case ('card') {
+      <section class="panel sec">
+        <div class="field">
+          <label for="num">Número de tarjeta @if (d.network !== 'other') { <span class="chip accent">{{ d.network }}</span> }</label>
+          <input id="num" name="num" class="mono" inputmode="numeric" [ngModel]="cardFormatted()" (ngModelChange)="onCardNumber($event)" placeholder="0000 0000 0000 0000" />
+          @if (cardInvalid()) { <span class="hint bad">El número no pasa la verificación (Luhn). Revísalo.</span> }
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="exp">Vence (MM/AA)</label><input id="exp" name="exp" class="mono" inputmode="numeric" [ngModel]="d.expiry" (ngModelChange)="onExpiry($event)" placeholder="08/29" /></div>
+          @if (!d.dynamicCvv) {
+            <div class="field"><label for="cvv">CVV</label><input id="cvv" name="cvv" class="mono" inputmode="numeric" maxlength="4" [(ngModel)]="d.cvv" (ngModelChange)="touch()" /></div>
+          }
+          <div class="field"><label for="pin">NIP</label><input id="pin" name="pin" type="password" class="mono" inputmode="numeric" maxlength="8" [(ngModel)]="d.pin" (ngModelChange)="touch()" /></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label for="hol">Titular</label><input id="hol" name="hol" [(ngModel)]="d.holder" (ngModelChange)="touch()" /></div>
+          <div class="field"><label for="bank">Banco</label><input id="bank" name="bank" [(ngModel)]="d.bank" (ngModelChange)="touch()" /></div>
+        </div>
+        <label class="check"><input type="checkbox" name="dyn" [(ngModel)]="d.dynamicCvv" (ngModelChange)="touch()" /> Esta tarjeta usa CVV dinámico</label>
+        @if (d.dynamicCvv) {
+          <div class="grid-2">
+            <div class="field">
+              <label for="app">App del banco (paquete Android)</label>
+              <input id="app" name="app" class="mono" list="bank-apps" [(ngModel)]="d.bankAppPackage" (ngModelChange)="touch()" placeholder="com.bancomer.mbanking" spellcheck="false" />
+              <datalist id="bank-apps">@for (b of bankApps; track b.pkg) { <option [value]="b.pkg">{{ b.name }}</option> }</datalist>
+              <span class="hint">Lo ves en Play Store: play.google.com/store/apps/details?id=<b>paquete</b></span>
+            </div>
+            <div class="field"><label for="dl">Enlace directo al CVV (opcional)</label><input id="dl" name="dl" class="mono" [(ngModel)]="d.bankAppUrl" (ngModelChange)="touch()" placeholder="bbva://…" spellcheck="false" /></div>
+          </div>
+        }
+        <div class="field"><label for="hue">Color de la tarjeta</label><input id="hue" name="hue" type="range" min="0" max="359" [(ngModel)]="d.hue" (ngModelChange)="touch()" /></div>
+      </section>
+    }
+
+    @case ('document') {
+      <section class="panel sec">
+        <div class="grid-2">
+          <div class="field"><label for="dt">Tipo</label>
+            <select id="dt" name="dt" [(ngModel)]="d.docType" (ngModelChange)="touch()">@for (t of docTypes; track t[0]) { <option [value]="t[0]">{{ t[1] }}</option> }</select>
+          </div>
+          <div class="field"><label for="dn">Número / clave</label><input id="dn" name="dn" class="mono" [(ngModel)]="d.number" (ngModelChange)="touch()" spellcheck="false" /></div>
+        </div>
+        <div class="field"><label for="fn">Nombre como aparece</label><input id="fn" name="fn" [(ngModel)]="d.fullName" (ngModelChange)="touch()" /></div>
+        <div class="grid-2">
+          <div class="field"><label for="ia">Expedición</label><input id="ia" name="ia" type="date" [(ngModel)]="d.issuedAt" (ngModelChange)="touch()" /></div>
+          <div class="field"><label for="ea">Vigencia</label><input id="ea" name="ea" type="date" [(ngModel)]="d.expiresAt" (ngModelChange)="touch()" /><span class="hint">Te avisamos 30 días antes.</span></div>
+        </div>
+      </section>
+    }
+
+    @case ('identity') {
+      <section class="panel sec">
+        <div class="field"><label for="ifn">Nombre completo</label><input id="ifn" name="ifn" [(ngModel)]="d.fullName" (ngModelChange)="touch()" /></div>
+        <div class="grid-2">
+          <div class="field"><label for="ie">Correo</label><input id="ie" name="ie" type="email" [(ngModel)]="d.email" (ngModelChange)="touch()" /></div>
+          <div class="field"><label for="ip">Teléfono</label><input id="ip" name="ip" type="tel" [(ngModel)]="d.phone" (ngModelChange)="touch()" /></div>
+        </div>
+        <div class="field"><label for="ib">Fecha de nacimiento</label><input id="ib" name="ib" type="date" [(ngModel)]="d.birthDate" (ngModelChange)="touch()" /></div>
+        <div class="field"><label for="is">Calle y número</label><input id="is" name="is" [(ngModel)]="d.street" (ngModelChange)="touch()" /></div>
+        <div class="grid-3">
+          <div class="field"><label for="ic">Ciudad</label><input id="ic" name="ic" [(ngModel)]="d.city" (ngModelChange)="touch()" /></div>
+          <div class="field"><label for="ist">Estado</label><input id="ist" name="ist" [(ngModel)]="d.state" (ngModelChange)="touch()" /></div>
+          <div class="field"><label for="iz">C.P.</label><input id="iz" name="iz" [(ngModel)]="d.zip" (ngModelChange)="touch()" /></div>
+        </div>
+      </section>
+    }
+
+    @case ('wifi') {
+      <section class="panel sec">
+        <div class="field"><label for="ssid">Nombre de la red (SSID)</label><input id="ssid" name="ssid" [(ngModel)]="d.ssid" (ngModelChange)="touch()" spellcheck="false" /></div>
+        <div class="field">
+          <label for="wp">Contraseña</label>
+          <div class="input-wrap">
+            <input id="wp" name="wp" class="mono" [type]="showPass() ? 'text' : 'password'" [(ngModel)]="d.password" (ngModelChange)="touch()" spellcheck="false" />
+            <span class="adorn">
+              <button type="button" class="btn icon sm ghost" (click)="showPass.set(!showPass())"><km-icon [name]="showPass() ? 'eye-off' : 'eye'" [size]="16" /></button>
+              <button type="button" class="btn icon sm ghost" (click)="generate()"><km-icon name="dice" [size]="16" /></button>
+            </span>
+          </div>
+        </div>
+        @if (genOpen()) {
+          <div class="gen"><span class="mono gen-val">{{ genPreview() }}</span>
+            <div class="gen-actions"><button type="button" class="btn sm" (click)="generate()"><km-icon name="sync" [size]="14" /></button><button type="button" class="btn sm primary" (click)="useGenerated()">Usar</button></div></div>
+        }
+        <div class="grid-2">
+          <div class="field"><label for="sec">Seguridad</label>
+            <select id="sec" name="sec" [(ngModel)]="d.security" (ngModelChange)="touch()"><option value="WPA">WPA/WPA2/WPA3</option><option value="WEP">WEP</option><option value="nopass">Abierta</option></select>
+          </div>
+          <label class="check end"><input type="checkbox" name="hid" [(ngModel)]="d.hidden" (ngModelChange)="touch()" /> Red oculta</label>
+        </div>
+      </section>
+    }
+  }
+
+  <section class="panel sec">
+    <h3>Campos personalizados</h3>
+    @for (f of draft.fields; track f.id) {
+      <div class="cf">
+        <input class="input" [name]="'fl' + f.id" [(ngModel)]="f.label" placeholder="Etiqueta" />
+        <input class="input" [class.mono]="f.secret" [name]="'fv' + f.id" [type]="f.secret ? 'password' : 'text'" [(ngModel)]="f.value" placeholder="Valor" />
+        <button type="button" class="btn icon ghost" (click)="f.secret = !f.secret; touch()" [title]="f.secret ? 'Secreto' : 'Visible'"><km-icon [name]="f.secret ? 'lock' : 'unlock'" [size]="16" /></button>
+        <button type="button" class="btn icon ghost" (click)="removeField(f.id)"><km-icon name="x" [size]="16" /></button>
+      </div>
+    }
+    <div class="row">
+      <button type="button" class="btn sm ghost" (click)="addField()"><km-icon name="plus" [size]="14" /> Campo</button>
+      <button type="button" class="btn sm ghost" (click)="addField(true)"><km-icon name="lock" [size]="14" /> Campo secreto</button>
+    </div>
+  </section>
+
+  <section class="panel sec">
+    <div class="field"><label for="notes">Notas</label><textarea id="notes" name="notes" [(ngModel)]="d.notes" (ngModelChange)="touch()" [rows]="draft.kind === 'note' ? 12 : 4"></textarea></div>
+    <div class="field"><label for="tags"><km-icon name="tag" [size]="14" /> Etiquetas (separadas por coma)</label><input id="tags" name="tags" [ngModel]="tagsText()" (ngModelChange)="tagsText.set($event)" placeholder="banco, streaming" /></div>
+  </section>
+
+  <section class="panel sec">
+    <h3>Adjuntos <span class="faint small">Se cifran en este dispositivo antes de subirse</span></h3>
+    @for (a of draft.attachments; track a.id) {
+      <div class="att"><km-icon [name]="a.mime.startsWith('image/') ? 'image' : 'file'" [size]="16" /><span class="grow">{{ a.name }}</span><span class="faint tiny">{{ size(a.size) }}</span>
+        <button type="button" class="btn icon sm ghost" (click)="removeFile(a.id)"><km-icon name="trash" [size]="14" /></button></div>
+    }
+    <label class="btn sm ghost file-btn"><km-icon name="clip" [size]="14" /> Adjuntar archivo o foto<input type="file" multiple (change)="addFiles($event)" hidden /></label>
+  </section>
+
+  <div class="bottom">
+    <button type="button" class="btn ghost" (click)="cancel()">Cancelar</button>
+    <button class="btn primary lg" [disabled]="saving()"><km-icon name="check" [size]="16" /> Guardar</button>
+  </div>
+</form>
+}

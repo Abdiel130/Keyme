@@ -63,6 +63,8 @@
       </div>
     }
 
+    <km-install-button class="install" [compact]="true" />
+
     <div class="foot">
       <button class="sync" (click)="store.sync()" [attr.data-s]="store.online() ? store.syncState() : 'offline'" title="Sincronizar ahora">
         <km-icon [name]="!store.online() || store.syncState() === 'offline' ? 'cloud-off' : 'sync'" [size]="15" [class.spin]="store.syncState() === 'syncing'" />
@@ -84,6 +86,10 @@
     } @else if (store.needsPassword()) {
       <div class="banner warn"><km-icon name="alert" [size]="16" /> La sesión con el servidor caducó. Bloquea y desbloquea con tu contraseña maestra para volver a sincronizar.
         <button class="btn sm" (click)="store.lock()">Bloquear</button></div>
+    }
+    @if (updates.ready()) {
+      <div class="banner info"><km-icon name="sparkle" [size]="16" /> Hay una versión nueva de Keyme. Se instala sola al bloquear el vault.
+        <button class="btn sm" (click)="updates.apply()">Actualizar ahora</button></div>
     }
     <router-outlet />
   </section>

@@ -9,6 +9,8 @@
 #   ./up.sh --build            Reconstruye las imágenes antes de levantar
 #   ./up.sh --no-cache         Reconstruye sin caché de Docker (implica --build)
 #   ./up.sh --tailscale        Publica Keyme en tu tailnet con HTTPS (tailscale serve)
+#   ./up.sh --update           Respalda, descarga la última versión del código y las
+#                              imágenes base con parches, reconstruye y reinicia
 #   ./up.sh --test             Corre las pruebas (crypto, modelos y API)
 #   ./up.sh --backup           Hace un respaldo ahora mismo
 #   ./up.sh --restore <tar>    Restaura un respaldo (borra el estado actual)
@@ -46,6 +48,7 @@ SETUP=false
 WAIT=false
 FOLLOW_LOGS=false
 ACTION=up
+UPDATE_IMAGES_ONLY=false
 RESTORE_FILE=""
 
 # -----------------------------------------------------------------------------
@@ -447,6 +450,49 @@ run_backup() {
   ok "Respaldo en $(backup_dir)"
 }
 
+run_update() {
+  step "Actualización"
+  # 1. Código. Después de un pull, el script se vuelve a ejecutar desde cero:
+  #    bash lee este archivo mientras corre y no debe mezclar dos versiones.
+  if ! $UPDATE_IMAGES_ONLY && git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    if [[ -n "$(git -C "$ROOT_DIR" status --porcelain --untracked-files=no)" ]]; then
+      warn "Hay cambios locales sin commit: no descargo código nuevo, solo actualizo imágenes."
+    else
+      local before after
+      before="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+      info "Descargando la última versión de la rama $(git -C "$ROOT_DIR" rev-parse --abbrev-ref HEAD)..."
+      if git -C "$ROOT_DIR" pull --ff-only --quiet; then
+        after="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+        if [[ "$before" != "$after" ]]; then
+          ok "Código actualizado: $(git -C "$ROOT_DIR" log --oneline -1)"
+          exec "$ROOT_DIR/up.sh" --update-images
+        fi
+        ok "El código ya estaba al día."
+      else
+        warn "No se pudo actualizar el código (git pull --ff-only). Sigo con las imágenes."
+      fi
+    fi
+  fi
+
+  # 2. Respaldo antes de tocar nada.
+  if [[ -n "$(docker compose ps -q db 2>/dev/null)" ]]; then
+    run_backup
+  fi
+
+  # 3. Imágenes base (PHP, nginx, PostgreSQL, Node) con sus últimos parches.
+  info "Descargando imágenes base con los últimos parches de seguridad..."
+  # db y backup usan postgres directo; api, scheduler y web se construyen aquí.
+  docker compose pull --quiet db backup
+  docker compose build --pull
+  docker compose up -d --remove-orphans
+  wait_for_api || fail "La API no arrancó después de actualizar. Revisa: docker compose logs api"
+  docker image prune -f >/dev/null 2>&1 || true
+
+  local version
+  version="$(api_status | json_field "d.get('version','?')")"
+  ok "Keyme ${BOLD}${version}${RESET} actualizado. Las apps instaladas se actualizan solas al abrirse."
+}
+
 run_restore() {
   local file="$1"
   [[ -f "$file" ]] || fail "No existe: $file"
@@ -512,6 +558,8 @@ while (( $# )); do
     --wait|-w)         WAIT=true ;;
     --logs|-f)         FOLLOW_LOGS=true ;;
     --tailscale)       ACTION=tailscale ;;
+    --update|-u)       ACTION=update ;;
+    --update-images)   ACTION=update; UPDATE_IMAGES_ONLY=true ;;
     --test)            ACTION=test ;;
     --backup)          ACTION=backup ;;
     --restore)         ACTION=restore; RESTORE_FILE="${2:-}"; shift || true ;;
@@ -538,6 +586,7 @@ case "$ACTION" in
       docker compose up -d api scheduler >/dev/null 2>&1 && ok "API recargada con la nueva URL."
     fi
     exit 0 ;;
+  update)    ensure_env; run_update; summary; exit 0 ;;
   test)      ensure_env; run_tests; exit 0 ;;
   backup)    ensure_env; run_backup; exit 0 ;;
   restore)   [[ -n "$RESTORE_FILE" ]] || fail "Uso: ./up.sh --restore backups/keyme-AAAAMMDD-HHMMSS.tar"; ensure_env; run_restore "$RESTORE_FILE"; exit 0 ;;

@@ -3,7 +3,7 @@
 
   <nav class="toc">
     <a href="#security">Seguridad</a><a href="#spaces">Espacios</a><a href="#rules">Reglas por sitio</a>
-    <a href="#import">Importar y exportar</a><a href="#devices">Dispositivos</a><a href="#audit">Registro</a><a href="#appearance">Apariencia</a>
+    <a href="#import">Importar y exportar</a><a href="#devices">Dispositivos</a><a href="#audit">Registro</a><a href="#appearance">Apariencia</a><a href="#app">App</a>
   </nav>
 
   <!-- Seguridad -->
@@ -242,6 +242,31 @@
       <button [class.on]="s().theme === 'dark'" (click)="save({ theme: 'dark' })"><km-icon name="moon" [size]="14" /> Oscuro</button>
       <button [class.on]="s().theme === 'light'" (click)="save({ theme: 'light' })"><km-icon name="sun" [size]="14" /> Claro</button>
       <button [class.on]="s().theme === 'system'" (click)="save({ theme: 'system' })">Sistema</button>
+    </div>
+  </section>
+
+  <!-- App -->
+  <section id="app" class="sec">
+    <h2>App</h2>
+    <div class="panel group">
+      <div class="opt">
+        <div class="ot"><b>Versión {{ version }}</b>
+          <span class="faint small">
+            @if (!updates.enabled) { Las actualizaciones automáticas solo funcionan en la app compilada (no en desarrollo). }
+            @else if (updates.ready()) { Hay una versión nueva lista. Se instala sola al bloquear el vault. }
+            @else { Se actualiza sola: busca versiones nuevas al abrirla y cada 15 minutos. }
+          </span>
+        </div>
+        @if (updates.ready()) {
+          <button class="btn sm primary" (click)="updates.apply()"><km-icon name="sparkle" [size]="14" /> Actualizar ahora</button>
+        } @else if (updates.enabled) {
+          <button class="btn sm" (click)="checkUpdates()" [disabled]="updates.checking()"><km-icon name="sync" [size]="14" /> Buscar</button>
+        }
+      </div>
+      <div class="opt">
+        <div class="ot"><b>{{ installer.installed() ? 'Instalada en este dispositivo' : 'Instalar en este dispositivo' }}</b><span class="faint small">Ícono propio, ventana sin barra del navegador y acceso sin conexión.</span></div>
+        <km-install-button [compact]="true" />
+      </div>
     </div>
   </section>
 

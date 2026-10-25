@@ -1,6 +1,13 @@
 # syntax=docker/dockerfile:1
-# 8.5.12+ corrige PHP2Shell (CVE-2026-109618, CVE-2026-109619).
-FROM php:8.5.12-fpm-alpine AS base
+# Etiqueta flotante de 8.5: `./up.sh --update` (build --pull) trae cada parche
+# nuevo sin editar este archivo. El piso de abajo evita que una imagen vieja en
+# caché vuelva a entrar.
+FROM php:8.5-fpm-alpine AS base
+
+# 8.5.12 corrige PHP2Shell (CVE-2026-109618, CVE-2026-109619).
+ARG PHP_MIN_VERSION=8.5.12
+RUN php -r 'exit(version_compare(PHP_VERSION, getenv("PHP_MIN_VERSION"), ">=") ? 0 : 1);' \
+    || { echo "PHP $(php -r 'echo PHP_VERSION;') es menor que $PHP_MIN_VERSION: corre ./up.sh --update" >&2; exit 1; }
 # OPcache ya viene compilado en PHP 8.5
 
 RUN apk add --no-cache libpq postgresql-client \

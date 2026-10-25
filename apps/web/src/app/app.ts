@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AppUpdates } from './core/app-updates';
+import { InstallPrompt } from './core/install';
 import { SessionGuard } from './core/session.service';
 import { VaultStore } from './core/vault.store';
 import { Onboarding } from './features/auth/onboarding';
@@ -36,6 +38,8 @@ export class App {
 
   constructor() {
     inject(SessionGuard);
+    inject(InstallPrompt);
+    inject(AppUpdates);
     void this.store.boot();
 
     // Tema: el de los ajustes cifrados mientras está abierto; el último conocido al estar bloqueado.

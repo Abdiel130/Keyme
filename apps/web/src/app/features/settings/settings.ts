@@ -8,10 +8,13 @@ import { db, type PrfMeta } from '../../core/db';
 import { downloadEmergencyKit } from '../../core/emergency-kit';
 import { dedupeKey, detectFormat, importBitwarden, importChromeCsv, importSafeInCloud, type ImportResult } from '../../core/importers';
 import { strength } from '../../core/strength';
+import { APP_VERSION, AppUpdates } from '../../core/app-updates';
 import { Toasts } from '../../core/toasts';
 import { VaultStore, defaultDeviceName } from '../../core/vault.store';
 import { prfSupported, registerPrf } from '../../core/webauthn';
 import { Icon, SPACE_ICONS } from '../../ui/icon';
+import { InstallPrompt } from '../../core/install';
+import { InstallButton } from '../../ui/install-button';
 import { StrengthMeter } from '../../ui/strength-meter';
 
 const EVENT_LABELS: Record<string, string> = {
@@ -22,7 +25,7 @@ const EVENT_LABELS: Record<string, string> = {
 @Component({
   selector: 'km-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, Icon, StrengthMeter],
+  imports: [FormsModule, Icon, InstallButton, StrengthMeter],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
 })
@@ -38,6 +41,9 @@ export class SettingsPage implements OnInit {
   protected readonly lockOptions = [1, 2, 5, 10, 15, 30, 60, 0];
   protected readonly clipOptions = [15, 30, 45, 60, 90, 0];
   protected readonly origin = location.origin;
+  protected readonly version = APP_VERSION;
+  protected updates = inject(AppUpdates);
+  protected installer = inject(InstallPrompt);
 
   // Windows Hello
   protected readonly helloSupported = signal(false);
@@ -105,6 +111,13 @@ export class SettingsPage implements OnInit {
 
   protected save(patch: Partial<Settings>): void {
     void this.store.saveSettings(patch);
+  }
+
+  // ----- App -------------------------------------------------------------
+
+  protected async checkUpdates(): Promise<void> {
+    const ready = await this.updates.check();
+    this.toasts.show(ready ? 'Hay una versión nueva lista' : navigator.onLine ? 'Ya tienes la última versión' : 'Sin conexión con el servidor', ready || navigator.onLine ? 'ok' : 'error');
   }
 
   // ----- Windows Hello ---------------------------------------------------

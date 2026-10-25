@@ -6,6 +6,17 @@ El formato sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-24
+
+### Changed
+
+- Rutas de la app en inglés: `/new/:kind`, `/item/:id/edit`, `/wallet`, `/generator`, `/health` y `/settings`. Los marcadores o accesos directos con las rutas anteriores (`/nuevo`, `/tarjetas`, `/ajustes`…) abren el inicio.
+
+### Security
+
+- Imagen de la API fijada en `php:8.5.12-fpm-alpine`, que corrige PHP2Shell (CVE-2026-109618 y CVE-2026-109619).
+- `session.upload_progress.enabled` y `fatal_error_backtraces` desactivados en `php.ini` como defensa adicional.
+
 ## [1.0.0] - 2026-10-24
 
 Primera versión estable. Reemplaza a SafeInCloud como gestor de contraseñas personal: autohospedado, zero-knowledge, offline-first y accesible solo por Tailscale.
@@ -58,5 +69,6 @@ Primera versión estable. Reemplaza a SafeInCloud como gestor de contraseñas pe
 - Keyme en su propio origen (host + puerto) para aislar su almacenamiento, service worker y credenciales WebAuthn de otros proyectos.
 - `.env` con permisos `600` y secretos generados automáticamente.
 
-[Unreleased]: https://github.com/Abdiel130/Keyme/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Abdiel130/Keyme/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/Abdiel130/Keyme/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Abdiel130/Keyme/releases/tag/v1.0.0

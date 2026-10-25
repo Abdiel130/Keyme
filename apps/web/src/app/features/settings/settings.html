@@ -2,12 +2,12 @@
   <div class="page-head"><div><p class="eyebrow">Keyme</p><h1>Ajustes</h1></div></div>
 
   <nav class="toc">
-    <a href="#seguridad">Seguridad</a><a href="#espacios">Espacios</a><a href="#reglas">Reglas por sitio</a>
-    <a href="#importar">Importar y exportar</a><a href="#dispositivos">Dispositivos</a><a href="#registro">Registro</a><a href="#apariencia">Apariencia</a>
+    <a href="#security">Seguridad</a><a href="#spaces">Espacios</a><a href="#rules">Reglas por sitio</a>
+    <a href="#import">Importar y exportar</a><a href="#devices">Dispositivos</a><a href="#audit">Registro</a><a href="#appearance">Apariencia</a>
   </nav>
 
   <!-- Seguridad -->
-  <section id="seguridad" class="sec">
+  <section id="security" class="sec">
     <h2>Seguridad</h2>
     <div class="panel group">
       <div class="opt">
@@ -77,7 +77,7 @@
   </section>
 
   <!-- Espacios -->
-  <section id="espacios" class="sec">
+  <section id="spaces" class="sec">
     <div class="sec-head"><h2>Espacios</h2><button class="btn sm" (click)="addSpace()"><km-icon name="plus" [size]="14" /> Espacio</button></div>
     <p class="faint small">Contextos de vida. Cada cuenta aparece etiquetada con el color de su espacio.</p>
     <div class="panel group">
@@ -120,7 +120,7 @@
   </section>
 
   <!-- Reglas -->
-  <section id="reglas" class="sec">
+  <section id="rules" class="sec">
     <h2>Reglas por sitio</h2>
     <p class="faint small">Para sitios exigentes (“este banco no acepta símbolos”). El generador las aplica según la URL del login.</p>
     <div class="panel group">
@@ -141,7 +141,7 @@
   </section>
 
   <!-- Importar / exportar -->
-  <section id="importar" class="sec">
+  <section id="import" class="sec">
     <h2>Importar y exportar</h2>
     <div class="grid-2">
       <div class="panel box">
@@ -190,7 +190,7 @@
   </section>
 
   <!-- Dispositivos -->
-  <section id="dispositivos" class="sec">
+  <section id="devices" class="sec">
     <div class="sec-head"><h2>Dispositivos</h2><button class="btn sm ghost" (click)="loadServer()"><km-icon name="sync" [size]="14" /></button></div>
     @if (serverError()) { <p class="faint">{{ serverError() }}</p> }
     @if (devices(); as list) {
@@ -218,7 +218,7 @@
   </section>
 
   <!-- Registro -->
-  <section id="registro" class="sec">
+  <section id="audit" class="sec">
     <h2>Registro de actividad</h2>
     @if (audit(); as events) {
       <div class="panel log">
@@ -236,7 +236,7 @@
   </section>
 
   <!-- Apariencia -->
-  <section id="apariencia" class="sec">
+  <section id="appearance" class="sec">
     <h2>Apariencia</h2>
     <div class="seg">
       <button [class.on]="s().theme === 'dark'" (click)="save({ theme: 'dark' })"><km-icon name="moon" [size]="14" /> Oscuro</button>

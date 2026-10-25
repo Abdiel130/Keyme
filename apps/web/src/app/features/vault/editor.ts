@@ -35,9 +35,9 @@ export class Editor {
   private router = inject(Router);
   private toasts = inject(Toasts);
 
-  /** Ruta /item/:id/editar */
+  /** Ruta /item/:id/edit */
   readonly id = input<string>();
-  /** Ruta /nuevo/:kind */
+  /** Ruta /new/:kind */
   readonly kind = input<EntryKind>();
 
   // Borrador mutable: los campos se enlazan con ngModel y `touch()` notifica.

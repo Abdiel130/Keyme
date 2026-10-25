@@ -505,7 +505,13 @@ fi
 check_docker
 
 case "$ACTION" in
-  tailscale) ensure_env; setup_tailscale; exit $? ;;
+  tailscale)
+    ensure_env; setup_tailscale || exit 1
+    # La API lee APP_URL al arrancar: recrearla si ya estaba corriendo.
+    if [[ -n "$(docker compose ps -q api 2>/dev/null)" ]]; then
+      docker compose up -d api scheduler >/dev/null && ok "API recargada con la nueva URL."
+    fi
+    exit 0 ;;
   test)      ensure_env; run_tests; exit 0 ;;
   backup)    ensure_env; run_backup; exit 0 ;;
   restore)   [[ -n "$RESTORE_FILE" ]] || fail "Uso: ./up.sh --restore backups/keyme-AAAAMMDD-HHMMSS.tar"; ensure_env; run_restore "$RESTORE_FILE"; exit 0 ;;

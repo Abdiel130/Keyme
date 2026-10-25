@@ -186,4 +186,4 @@ Ver [SECURITY.md](SECURITY.md), [docs/security.md](docs/security.md) y [docs/for
 ## Licencia y versión
 
 - Licencia: [MIT](LICENSE).
-- Versión actual: **1.0.1** (Ver [CHANGELOG.md](CHANGELOG.md) para más detalles).
+- Versión actual: **1.1.0** (Ver [CHANGELOG.md](CHANGELOG.md) para más detalles).

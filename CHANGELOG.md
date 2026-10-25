@@ -7,6 +7,8 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-24
+
 Keyme ya se instala con un toque y se mantiene al día solo. El botón
 "Instalar app" aparece donde lo necesitas, y cada dispositivo recibe las
 versiones nuevas sin que tengas que hacer nada. En el servidor, un solo

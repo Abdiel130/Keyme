@@ -3,15 +3,17 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 import { KIND_LABELS, type EntryKind } from '@keyme/models';
+import { AppUpdates } from '../../core/app-updates';
 import { UiState, type Filter } from '../../core/ui-state';
 import { VaultStore } from '../../core/vault.store';
 import { Icon } from '../../ui/icon';
+import { InstallButton } from '../../ui/install-button';
 import { EntryList } from './entry-list';
 
 @Component({
   selector: 'km-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon, EntryList],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon, EntryList, InstallButton],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
   host: {
@@ -21,6 +23,7 @@ import { EntryList } from './entry-list';
 export class Shell {
   protected store = inject(VaultStore);
   protected ui = inject(UiState);
+  protected updates = inject(AppUpdates);
   private router = inject(Router);
 
   private url = toSignal(

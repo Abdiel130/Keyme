@@ -6,12 +6,13 @@ import { VaultStore } from '../../core/vault.store';
 import { PASSWORD_EVERY_DAYS, getPrf, prfStatus } from '../../core/webauthn';
 import type { PrfMeta } from '../../core/db';
 import { Icon } from '../../ui/icon';
+import { InstallButton } from '../../ui/install-button';
 import { VaultDial } from '../../ui/vault-dial';
 
 @Component({
   selector: 'km-unlock',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, Icon, VaultDial],
+  imports: [FormsModule, Icon, InstallButton, VaultDial],
   templateUrl: './unlock.html',
   styleUrl: './auth.scss',
 })

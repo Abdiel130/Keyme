@@ -11,7 +11,7 @@ COPY packages packages
 COPY apps/web apps/web
 RUN npm run build -w @keyme/web
 
-FROM nginx:1.27-alpine
+FROM nginx:stable-alpine
 RUN rm /etc/nginx/conf.d/default.conf
 COPY infra/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY infra/nginx/keyme.conf /etc/nginx/conf.d/keyme.conf

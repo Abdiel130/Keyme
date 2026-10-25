@@ -6,6 +6,11 @@ El formato sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Security
+
+- Imagen de la API fijada en `php:8.5.12-fpm-alpine`, que corrige PHP2Shell (CVE-2026-109618 y CVE-2026-109619).
+- `session.upload_progress.enabled` y `fatal_error_backtraces` desactivados en `php.ini` como defensa adicional.
+
 ## [1.0.0] - 2026-10-24
 
 Primera versión estable. Reemplaza a SafeInCloud como gestor de contraseñas personal: autohospedado, zero-knowledge, offline-first y accesible solo por Tailscale.

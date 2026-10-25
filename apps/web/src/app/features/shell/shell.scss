@@ -51,6 +51,9 @@
 .main-pane { min-width: 0; min-height: 0; position: relative; display: flex; flex-direction: column; > :last-child { flex: 1; min-height: 0; } }
 .banner { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13.5px; border-bottom: 1px solid var(--line); .btn { margin-left: auto; } }
 .banner.warn { background: var(--warn-soft); color: var(--warn); }
+.banner.info { background: var(--accent-soft); color: var(--accent); }
+.install { margin-top: auto; padding-top: 10px; }
+.install + .foot { margin-top: 10px; }
 
 .tabbar, .scrim, .sheet-scrim { display: none; }
 

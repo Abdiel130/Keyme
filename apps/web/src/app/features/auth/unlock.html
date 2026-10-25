@@ -63,6 +63,7 @@
             <span class="dot"></span>
             {{ store.online() ? 'En línea' : 'Sin conexión — puedes desbloquear con tu copia local' }}
           </p>
+          <km-install-button />
         </form>
 
         @if (hasLocal()) {

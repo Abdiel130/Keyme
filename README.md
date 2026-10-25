@@ -70,6 +70,7 @@ Cada dispositivo nuevo pide solo la contraseña maestra. El token de instalació
 | `./up.sh --setup` | Asistente completo (formulario, build, Tailscale, token). |
 | `./up.sh --build` | Reconstruye las imágenes y levanta. |
 | `./up.sh --tailscale` | Publica Keyme en el tailnet con HTTPS. Solo lo ven tus equipos. |
+| `./up.sh --update` | Respalda, baja la última versión del código y las imágenes base con parches, reconstruye y reinicia. |
 | `./up.sh --status` | Muestra contenedores, estado del vault, URL del tailnet y último respaldo. |
 | `./up.sh --backup` | Hace un respaldo ahora. |
 | `./up.sh --restore backups/keyme-AAAAMMDD-HHMMSS.tar` | Restaura un respaldo. Antes respalda el estado actual. |
@@ -115,6 +116,31 @@ infra/backup/      pg_dump diario + adjuntos
 ```
 
 Servicios de Docker: `db`, `api`, `scheduler` (purga de borrados a 30 días), `web` y `backup`.
+
+## Actualizaciones
+
+Hay dos partes: el servidor y las apps instaladas.
+
+**Servidor.** `./up.sh --update` hace todo:
+
+1. `git pull --ff-only` de la rama actual. Si hay cambios locales sin commit, se salta este paso.
+2. Respaldo de la base y los adjuntos.
+3. Descarga las imágenes base más recientes (PHP 8.5, nginx estable, PostgreSQL 17, Node 24) con sus parches de seguridad, y reconstruye.
+4. Reinicia y espera a que la API responda.
+
+El Dockerfile de la API usa la etiqueta `php:8.5` para recibir cada parche, pero exige un mínimo (`PHP_MIN_VERSION`, hoy 8.5.12 por PHP2Shell): si la imagen es más vieja, el build falla.
+
+**Apps instaladas (PC y teléfono).** Se actualizan solas. Al abrirse, al volver a primer plano, al recuperar conexión y cada 15 minutos preguntan al servidor si hay versión nueva y la descargan en segundo plano.
+
+- Con el vault bloqueado, la versión nueva se aplica al momento.
+- Con el vault abierto aparece un aviso *Actualizar ahora*. Si no lo usas, se aplica en el siguiente bloqueo, manual o por inactividad.
+- *Ajustes → App* muestra la versión y tiene el botón *Buscar*.
+
+No hace falta reinstalar ni tocar nada en cada dispositivo.
+
+## Instalar la app
+
+El botón **Instalar app** aparece en la pantalla de desbloqueo, en la barra lateral y en *Ajustes → App* mientras Keyme se use desde el navegador. En Chrome, Edge y Android abre el diálogo de instalación. En iPhone y Firefox muestra los pasos para instalarla a mano. Ya instalada, el botón desaparece.
 
 ## Respaldos (regla 3-2-1)
 

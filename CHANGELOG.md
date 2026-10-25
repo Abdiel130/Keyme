@@ -6,6 +6,18 @@ El formato sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Added
+
+- Botón **Instalar app** en la pantalla de desbloqueo, la barra lateral y *Ajustes → App*. Usa el diálogo nativo en Chrome, Edge y Android, y muestra instrucciones en iPhone y Firefox.
+- Actualización automática de la app: busca versiones nuevas al abrirse, al volver a primer plano, al recuperar conexión y cada 15 minutos. Se aplica al momento con el vault bloqueado; con el vault abierto se ofrece en un aviso y se aplica en el siguiente bloqueo.
+- Sección *Ajustes → App* con la versión instalada y el botón *Buscar* actualizaciones.
+- `./up.sh --update`: respalda, descarga el código y las imágenes base más recientes, reconstruye y reinicia.
+
+### Changed
+
+- La API vuelve a la etiqueta `php:8.5-fpm-alpine` para recibir parches con `./up.sh --update`. El build falla si PHP es menor que 8.5.12 (`PHP_MIN_VERSION`).
+- nginx pasa de `1.27-alpine` a `stable-alpine`.
+
 ## [1.0.1] - 2026-10-24
 
 ### Changed

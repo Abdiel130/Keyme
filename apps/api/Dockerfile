@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
-FROM php:8.5-fpm-alpine AS base
+# 8.5.12+ corrige PHP2Shell (CVE-2026-109618, CVE-2026-109619).
+FROM php:8.5.12-fpm-alpine AS base
 # OPcache ya viene compilado en PHP 8.5
 
 RUN apk add --no-cache libpq postgresql-client \

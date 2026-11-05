@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { subtitle } from '@keyme/models';
+import { subtitle, type Entry } from '@keyme/models';
 import { analyze, checkPwned, type HealthIssue } from '../../core/health';
 import { Toasts } from '../../core/toasts';
 import { UiState } from '../../core/ui-state';
@@ -68,7 +68,7 @@ type Tab = 'all' | 'pwned' | 'weak' | 'reused' | 'old';
         @for (i of list(); track i.entry.id) {
           <a class="issue panel" [routerLink]="['/item', i.entry.id, 'edit']">
             <km-avatar [entry]="i.entry" [size]="34" [ring]="ui.spaceById().get(i.entry.spaceId ?? '')?.color ?? null" />
-            <span class="grow"><b>{{ i.entry.title }}</b><span class="faint small">{{ subtitle(i.entry) }}</span></span>
+            <span class="grow"><b>{{ i.entry.title }}</b><span class="faint small">{{ subtitle(i.entry) }}@if (ownerOf(i.entry); as o) { · de {{ o }}}</span></span>
             <span class="tags">
               @if (i.pwned) { <span class="chip danger">Filtrada {{ fmt(i.pwned) }} veces</span> }
               @if (i.weak !== undefined) { <span class="chip warn">Débil</span> }
@@ -118,6 +118,10 @@ export class HealthPage {
   protected ui = inject(UiState);
   private toasts = inject(Toasts);
   protected readonly subtitle = subtitle;
+
+  protected ownerOf(e: Entry): string {
+    return e.ownerId ? this.ui.personById().get(e.ownerId)?.name ?? '' : '';
+  }
   protected readonly tab = signal<Tab>('all');
   protected readonly pwned = signal<Map<string, number>>(new Map());
   protected readonly pwnedChecked = signal(false);

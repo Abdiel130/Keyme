@@ -61,6 +61,8 @@ interface EntryBase {
   kind: EntryKind;
   title: string;
   spaceId: string | null;
+  /** De quién es la cuenta (una de `Settings.people`). null = mía. */
+  ownerId?: string | null;
   tags: string[];
   favorite: boolean;
   notes: string;
@@ -106,6 +108,8 @@ export interface CardEntry extends EntryBase {
   bankAppUrl: string;
   /** Tono de la tarjeta en la vista (0-360). */
   hue?: number;
+  /** Login de la banca en línea / app del banco que va con esta tarjeta. */
+  loginId?: string | null;
 }
 
 export type DocumentType = 'ine' | 'curp' | 'rfc' | 'nss' | 'pasaporte' | 'licencia' | 'otro';
@@ -158,6 +162,17 @@ export interface Space {
   modifiedAt: string;
 }
 
+/**
+ * Alguien cuyas cuentas guardas tú (p. ej. la abuela). Vive dentro de los
+ * ajustes y no como registro propio: un cliente viejo trataría un tipo de
+ * registro desconocido como elemento y lo mostraría roto.
+ */
+export interface Person {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface SiteRule {
   domain: string;
   rule: GeneratorRule;
@@ -172,6 +187,7 @@ export interface Settings {
   theme: 'dark' | 'light' | 'system';
   generator: GeneratorRule & { mode: 'random' | 'passphrase'; words: number; separator: string };
   siteRules: SiteRule[];
+  people: Person[];
   modifiedAt: string;
 }
 
@@ -186,6 +202,7 @@ export const DEFAULT_SETTINGS: Omit<Settings, 'modifiedAt'> = {
   theme: 'dark',
   generator: { mode: 'random', length: 20, lower: true, upper: true, digits: true, symbols: true, words: 5, separator: '-' },
   siteRules: [],
+  people: [],
 };
 
 export const DEFAULT_SPACES: Pick<Space, 'name' | 'color' | 'icon'>[] = [
@@ -240,6 +257,7 @@ export function newEntry<K extends EntryKind>(kind: K, spaceId: string | null, n
     kind,
     title: '',
     spaceId,
+    ownerId: null,
     tags: [],
     favorite: false,
     notes: '',
@@ -251,7 +269,7 @@ export function newEntry<K extends EntryKind>(kind: K, spaceId: string | null, n
   };
   const extra: Record<EntryKind, object> = {
     login: { username: '', password: '', urls: [], androidPackages: [], recoveryCodes: [], signInWith: null },
-    card: { holder: '', number: '', expiry: '', cvv: '', dynamicCvv: false, pin: '', bank: '', network: 'other', bankAppPackage: '', bankAppUrl: '' },
+    card: { holder: '', number: '', expiry: '', cvv: '', dynamicCvv: false, pin: '', bank: '', network: 'other', bankAppPackage: '', bankAppUrl: '', loginId: null },
     document: { docType: 'ine', number: '', fullName: '', issuedAt: '', expiresAt: '' },
     identity: { fullName: '', email: '', phone: '', birthDate: '', street: '', city: '', state: '', zip: '', country: 'México' },
     note: {},
@@ -480,12 +498,79 @@ export function fuzzyScore(query: string, text: string): number {
   return score;
 }
 
-export function searchText(e: Entry, spaceName = ''): string {
-  const parts: string[] = [e.title, e.tags.join(' '), spaceName, KIND_LABELS[e.kind]];
+export function searchText(e: Entry, spaceName = '', ownerName = ''): string {
+  const parts: string[] = [e.title, e.tags.join(' '), spaceName, ownerName, KIND_LABELS[e.kind]];
   if (e.kind === 'login') parts.push(e.username, ...e.urls.map((u) => u.value), ...e.androidPackages);
   if (e.kind === 'card') parts.push(e.bank, e.holder, digitsOnly(e.number).slice(-4));
   if (e.kind === 'document') parts.push(DOC_LABELS[e.docType], e.fullName);
   if (e.kind === 'identity') parts.push(e.fullName, e.email, e.phone);
   if (e.kind === 'wifi') parts.push(e.ssid);
   return parts.filter(Boolean).join(' ');
+}
+
+// ---------------------------------------------------------------------------
+// Multicuenta: agrupar por servicio
+// ---------------------------------------------------------------------------
+
+/** Dominios que pertenecen a la misma cuenta (iniciar sesión en uno es iniciar en todos). */
+const SERVICE_ALIASES: Record<string, string> = {
+  'gmail.com': 'google.com',
+  'youtube.com': 'google.com',
+  'outlook.com': 'microsoft.com',
+  'live.com': 'microsoft.com',
+  'hotmail.com': 'microsoft.com',
+  'office.com': 'microsoft.com',
+  'instagram.com': 'facebook.com',
+};
+
+/** "Google · Escuela" → "Google". */
+export function titlePrefix(title: string): string {
+  return title.split(/\s+[·|(–—-]\s*|\s*\(/)[0].trim();
+}
+
+/**
+ * Llave del servicio al que pertenece un elemento, para agrupar varias
+ * cuentas del mismo sitio o banco. Una tarjeta con su banca en línea
+ * vinculada va en el grupo de ese login.
+ */
+export function serviceKey(e: Entry, get: (id: string) => Entry | undefined = () => undefined): string {
+  if (e.kind === 'card' && e.loginId) {
+    const l = get(e.loginId);
+    if (l && l.kind === 'login') return serviceKey(l);
+  }
+  if (e.kind === 'login') {
+    const h = hostOf(e.urls[0]?.value ?? '');
+    if (h) {
+      const d = baseDomain(h);
+      return `d:${SERVICE_ALIASES[d] ?? d}`;
+    }
+  }
+  const name = e.kind === 'card' && e.bank ? e.bank : titlePrefix(e.title);
+  return `n:${fold(name).replace(/\s+/g, ' ').trim()}`;
+}
+
+/** Nombre del grupo: el prefijo de título más repetido (o el banco). */
+export function serviceName(entries: Entry[]): string {
+  const votes = new Map<string, number>();
+  for (const e of entries) {
+    const n = e.kind === 'card' && e.bank ? e.bank : titlePrefix(e.title);
+    if (n) votes.set(n, (votes.get(n) ?? 0) + (e.kind === 'card' ? 0.5 : 1));
+  }
+  const best = [...votes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (best) return best;
+  const login = entries.find((e): e is LoginEntry => e.kind === 'login' && !!e.urls.length);
+  return login ? baseDomain(hostOf(login.urls[0].value)) : 'Sin título';
+}
+
+/** Lo que distingue a una cuenta de sus hermanas dentro del grupo. */
+export function accountLabel(e: Entry): string {
+  const rest = e.title.slice(titlePrefix(e.title).length).replace(/^[\s·|(–—-]+|\)$/g, '').trim();
+  switch (e.kind) {
+    case 'login':
+      return e.username || rest || e.title;
+    case 'card':
+      return [rest || KIND_LABELS.card, maskCard(e.number)].filter(Boolean).join(' · ');
+    default:
+      return rest || subtitle(e) || e.title;
+  }
 }

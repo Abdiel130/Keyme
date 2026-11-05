@@ -2,101 +2,149 @@
 .shell { height: 100%; display: grid; grid-template-columns: var(--rail-w) var(--list-w) minmax(0, 1fr); }
 .shell.full { grid-template-columns: var(--rail-w) minmax(0, 1fr); .list-pane { display: none; } }
 
-/* Rail ------------------------------------------------------------------ */
+/* Rail: navegación compacta al estilo Material 3 ---------------------------- */
 .rail {
   background: var(--bg-rail); border-right: 1px solid var(--line);
-  display: flex; flex-direction: column; gap: 14px; padding: 16px 12px 12px; overflow-y: auto; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0 14px; overflow-y: auto; min-height: 0;
+  scrollbar-width: none;
 }
-.brand { display: flex; align-items: center; gap: 10px; padding: 2px 4px 4px 6px; }
-.mark { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: linear-gradient(140deg, var(--accent), var(--accent-2)); color: var(--accent-ink); box-shadow: 0 6px 16px -6px var(--accent); }
-.word { font-family: var(--font-display); font-size: 21px; font-weight: 600; letter-spacing: -0.02em; flex: 1; }
-.search-btn {
-  display: flex; align-items: center; gap: 9px; height: 38px; padding: 0 8px 0 12px; border-radius: 11px;
-  background: var(--surface); border: 1px solid var(--line); color: var(--text-3); font: 14px var(--font-ui); cursor: pointer; text-align: left;
-  span:not(.kbd) { flex: 1; }
-  transition: border-color .15s, color .15s, transform .18s var(--ease);
-  @media (hover: hover) { &:hover { border-color: var(--line-strong); color: var(--text-2); } }
-  &:active { transform: scale(.98); transition-duration: .06s; }
+.mark {
+  width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; margin-bottom: 6px;
+  background: linear-gradient(140deg, var(--accent), var(--accent-2)); color: var(--accent-ink);
+  box-shadow: 0 8px 20px -8px var(--accent), inset 0 1px 0 rgba(255,255,255,.3);
+  transition: transform .3s var(--spring);
+  &:active { transform: scale(.9) rotate(-8deg); transition-duration: .08s; }
 }
-.new { position: relative; }
-.menu { position: absolute; z-index: 30; top: 44px; left: 0; right: 0; padding: 6px; display: flex; flex-direction: column; animation: pop .15s var(--ease); background: var(--surface-2); }
-.menu button { display: flex; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 9px; border: 0; background: none; color: var(--text); font: 14px var(--font-ui); cursor: pointer; text-align: left; }
-.menu button { transition: background .12s; }
-@media (hover: hover) { .menu button:hover { background: var(--surface-3); } }
-.menu button:active { background: var(--surface-3); }
-.menu km-icon { color: var(--accent); }
-
-.nav, .group { display: flex; flex-direction: column; gap: 1px; }
-.group .eyebrow { margin: 6px 10px 6px; }
-.nav > *, .group > button {
-  display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 9px;
-  background: none; border: 0; color: var(--text-2); font: 500 14px var(--font-ui); cursor: pointer; text-align: left; text-decoration: none;
-  transition: background .12s, color .12s, transform .18s var(--ease);
-  km-icon { color: var(--text-3); transition: color .12s; }
-  @media (hover: hover) { &:hover { background: var(--surface); color: var(--text); } }
-  &:active { background: var(--surface); color: var(--text); transform: scale(.98); transition-duration: .06s; }
-  &.on { background: var(--surface-2); color: var(--text); box-shadow: inset 2px 0 0 var(--accent); km-icon { color: var(--accent); } }
+.fab {
+  width: 56px; height: 56px; border-radius: 18px; border: 0; display: grid; place-items: center; cursor: pointer; margin-bottom: 14px;
+  background: var(--accent-soft); color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 25%, transparent);
+  transition: transform .3s var(--spring), background .2s, border-radius .3s var(--ease);
+  @media (hover: hover) { &:hover { background: color-mix(in oklab, var(--accent) 24%, transparent); border-radius: 22px; } }
+  &:active { transform: scale(.9); transition-duration: .08s; }
 }
-.n { margin-left: auto; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
-.sw { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: color-mix(in oklab, var(--c) 22%, transparent); color: var(--c) !important; flex: none; km-icon { color: var(--c) !important; } }
-.sw.none { background: var(--surface-3); }
-.tag-cloud { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 8px; .chip { cursor: pointer; transition: transform .18s var(--ease); &:active { transform: scale(.94); transition-duration: .06s; } } }
-.foot { margin-top: auto; display: flex; align-items: center; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+.rail-tabs { position: relative; width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.tab {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; height: 62px; padding: 4px 0 6px;
+  background: none; border: 0; color: var(--text-3); font: 600 12px var(--font-ui); text-decoration: none; cursor: pointer;
+  transition: color .25s; position: relative; z-index: 1;
+  .pill { width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center; position: relative; transition: background .25s var(--ease), color .25s, transform .3s var(--spring); }
+  @media (hover: hover) { &:not(.on):hover { color: var(--text); .pill { background: var(--surface); } } }
+  &:active .pill { transform: scale(.9); transition-duration: .08s; }
+  &.on { color: var(--text); .pill { color: var(--accent); } km-icon { animation: tab-pop .5s var(--spring); } }
+}
+/* Ajustes y Bloquear no viajan con el indicador: llevan su propia píldora. */
+.rail > .tab.on .pill { background: var(--accent-soft); }
+/* Un solo indicador que viaja entre pestañas, al ritmo de la pantalla. */
+.rail-tabs .ind {
+  position: absolute; left: 50%; top: 4px; width: 56px; height: 32px; margin-left: -28px; border-radius: 16px;
+  background: var(--accent-soft); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 28%, transparent);
+  transform: translateY(calc(var(--k) * (62px + 6px)));
+  transition: transform .5s var(--spring), opacity .2s, scale .3s var(--ease);
+  &.off { opacity: 0; scale: .4; }
+}
+@keyframes tab-pop { 30% { transform: translateY(-2px) scale(1.12); } }
+.lock { margin-top: 2px; }
+.grow { flex: 1; }
+.install { margin-bottom: 6px; ::ng-deep .btn { width: 56px; padding: 0; font-size: 0; gap: 0; } }
 .sync {
-  flex: 1; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: 9px; border: 0; background: none;
-  color: var(--text-3); font: 12.5px var(--font-ui); cursor: pointer; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  transition: background .12s, color .12s;
+  position: relative; width: 44px; height: 44px; border-radius: 14px; border: 0; background: none; color: var(--text-3); cursor: pointer; display: grid; place-items: center;
+  transition: background .15s, color .15s;
   @media (hover: hover) { &:hover { background: var(--surface); color: var(--text-2); } }
-  &:active { background: var(--surface); color: var(--text-2); }
-  &[data-s='idle'] km-icon { color: var(--ok); }
-  &[data-s='offline'] km-icon, &[data-s='error'] km-icon { color: var(--warn); }
+  &[data-s='idle'] { color: var(--ok); }
+  &[data-s='offline'], &[data-s='error'] { color: var(--warn); }
   .spin { animation: spin 1s linear infinite; }
+  .pend { position: absolute; top: 4px; right: 3px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--warn); color: #1b1408; font: 750 10.5px/17px var(--font-ui); }
 }
-.foot a.on { color: var(--accent); background: var(--surface-2); }
 
-.list-pane { border-right: 1px solid var(--line); min-width: 0; min-height: 0; background: color-mix(in oklab, var(--bg) 70%, var(--bg-rail)); }
-.main-pane { min-width: 0; min-height: 0; position: relative; display: flex; flex-direction: column; > :last-child { flex: 1; min-height: 0; } }
-.banner { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13.5px; border-bottom: 1px solid var(--line); .btn { margin-left: auto; } }
+/* Paneles ---------------------------------------------------------------- */
+.list-pane { border-right: 1px solid var(--line); min-width: 0; min-height: 0; background: var(--bg-elev); }
+.main-pane { min-width: 0; min-height: 0; position: relative; display: flex; flex-direction: column; background: var(--bg); }
+.outlet { flex: 1; min-height: 0; view-transition-name: km-main; }
+.banner { display: flex; align-items: center; gap: 12px; padding: 12px 18px; font-size: 14px; border-bottom: 1px solid var(--line); span { flex: 1; } }
 .banner.warn { background: var(--warn-soft); color: var(--warn); }
 .banner.info { background: var(--accent-soft); color: var(--accent); }
-.install { margin-top: auto; padding-top: 10px; }
-.install + .foot { margin-top: 10px; }
 
-.tabbar, .scrim, .sheet-scrim { display: none; }
+.tabbar { display: none; }
 
-/* Tablet: rail más angosto */
+/* Hoja "Nuevo" ----------------------------------------------------------- */
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; h2 { font-size: 26px; } }
+.kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.kind {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 16px; border-radius: 20px; text-align: left; cursor: pointer;
+  border: 1px solid var(--line); background: linear-gradient(160deg, color-mix(in oklab, var(--c) 12%, var(--surface-2)), var(--surface-2) 70%);
+  color: var(--text); font: 15px var(--font-ui);
+  transition: transform .3s var(--spring), border-color .2s, background .2s;
+  b { font-weight: 650; margin-top: 10px; }
+  span.faint { font-size: 13px; line-height: 1.3; }
+  @media (hover: hover) { &:hover { border-color: color-mix(in oklab, var(--c) 45%, var(--line)); transform: translateY(-2px); } }
+  &:active { transform: scale(.95); transition-duration: .08s; }
+}
+.ki { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; background: color-mix(in oklab, var(--c) 22%, transparent); color: var(--c); }
+.extras { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; .btn { flex: 1; } }
+
+/* Tablet ---------------------------------------------------------------- */
 @media (max-width: 1180px) {
-  .shell { --list-w: 330px; --rail-w: 232px; }
+  .shell { --list-w: 350px; }
 }
 
 /* Móvil ----------------------------------------------------------------- */
 @media (max-width: 860px) {
-  .shell, .shell.full { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-  .rail {
-    position: fixed; z-index: 50; inset: 0 auto 0 0; width: min(300px, 86vw); transform: translateX(-102%);
-    transition: transform .25s var(--ease); box-shadow: var(--shadow-lg);
-  }
-  .rail-open .rail { transform: none; }
-  .rail-open .scrim { display: block; position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.5); animation: fade .2s; }
-  .new { display: none; }
-  .list-pane { border-right: 0; grid-row: 1; grid-column: 1; }
-  .main-pane { grid-row: 1; grid-column: 1; display: none; background: var(--bg); }
+  .shell, .shell.full { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); }
+  .rail { display: none; }
+  .list-pane { border-right: 0; grid-row: 1; grid-column: 1; background: var(--bg); }
+  .main-pane { grid-row: 1; grid-column: 1; display: none; }
   .shell.detail .list-pane, .shell.full .list-pane { display: none; }
   .shell.detail .main-pane, .shell.full .main-pane { display: flex; }
+  /* La lista también participa en el deslizamiento al abrir una ficha. */
+  .list-pane { view-transition-name: km-list; }
+  .shell { position: relative; }
+
+  /* Barra inferior: una isla flotante con un indicador que se estira al
+     viajar de una pestaña a otra, como una gota. */
   .tabbar {
-    display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; grid-row: 2;
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: var(--bg-rail); border-top: 1px solid var(--line);
-    > a, > button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; border: 0; background: none; color: var(--text-3); font: 500 11px var(--font-ui); text-decoration: none; cursor: pointer; transition: color .15s; }
-    // Pestañas tipo Material: la píldora detrás del icono aparece al presionar y en la activa.
-    > a km-icon { padding: 3px 16px; border-radius: 14px; box-sizing: content-box; transition: background .2s var(--ease), transform .18s var(--ease); }
-    > a:active km-icon { background: var(--surface-2); transform: scale(.92); transition-duration: .06s; }
-    > .on { color: var(--accent); km-icon { background: var(--accent-soft); } }
-    .add { justify-self: center; width: 50px; height: 50px; border-radius: 16px; background: linear-gradient(140deg, var(--accent), var(--accent-2)); color: var(--accent-ink); box-shadow: 0 8px 20px -8px var(--accent); padding: 0; justify-content: center; transition: transform .18s var(--ease), box-shadow .18s; }
-    .add:active { transform: scale(.92); box-shadow: 0 4px 10px -6px var(--accent); transition-duration: .06s; }
+    display: block; position: absolute; left: 0; right: 0; bottom: 0; z-index: 30; pointer-events: none;
+    padding: 0 12px calc(10px + env(safe-area-inset-bottom)); view-transition-name: km-tabbar;
   }
-  .sheet-scrim { display: flex; position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.55); align-items: flex-end; animation: fade .15s; }
-  .sheet { width: 100%; border-radius: 22px 22px 0 0; padding: 18px 16px calc(20px + env(safe-area-inset-bottom)); animation: rise .2s var(--ease); }
-  .sheet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
-  .sheet-grid button { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 6px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: 500 13px var(--font-ui); km-icon { color: var(--accent); } transition: background .12s, transform .18s var(--ease); }
-  .sheet-grid button:active { background: var(--surface-3); transform: scale(.96); transition-duration: .06s; }
+  .dock {
+    pointer-events: auto; position: relative; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
+    height: 66px; padding: 0 6px; border-radius: 24px;
+    background: color-mix(in oklab, var(--surface) 80%, transparent); backdrop-filter: blur(22px) saturate(1.6);
+    border: 1px solid var(--line); box-shadow: 0 18px 44px -14px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.06);
+    > a {
+      position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      color: var(--text-3); font: 600 11px var(--font-ui); text-decoration: none; transition: color .3s;
+      km-icon { transition: transform .35s var(--spring); }
+      .lbl { transition: opacity .25s, transform .35s var(--spring); }
+      &:active km-icon { transform: scale(.86); transition-duration: .08s; }
+    }
+    > a.on { color: var(--text); km-icon { color: var(--accent); animation: tab-pop .5s var(--spring); } .lbl { font-weight: 700; } }
+    .ind {
+      --cell: (100% - 12px) / 5;
+      position: absolute; top: 8px; bottom: 8px; border-radius: 18px;
+      left: calc(6px + var(--k) * var(--cell) + 5px); right: calc(6px + (4 - var(--k)) * var(--cell) + 5px);
+      background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 20%, transparent), color-mix(in oklab, var(--accent) 9%, transparent));
+      box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 26%, transparent);
+      transition: left .55s var(--spring) var(--dl, 0s), right .55s var(--spring) var(--dr, 0s), opacity .2s, scale .3s var(--ease);
+      /* La "luz" bajo la pestaña activa. */
+      &::after {
+        content: ''; position: absolute; left: 50%; bottom: -1px; width: 22px; margin-left: -11px; height: 3px; border-radius: 3px;
+        background: var(--accent); box-shadow: 0 0 12px 1px var(--accent);
+      }
+      &.off { opacity: 0; scale: .5; }
+    }
+    .add {
+      justify-self: center; position: relative; z-index: 2; width: 54px; height: 54px; border-radius: 19px; border: 0; display: grid; place-items: center;
+      transform: translateY(-16px); background: linear-gradient(140deg, var(--accent), var(--accent-2)); color: var(--accent-ink);
+      box-shadow: 0 12px 24px -8px var(--accent), 0 0 0 5px var(--bg), inset 0 1px 0 rgba(255,255,255,.35);
+      transition: transform .35s var(--spring), box-shadow .2s, border-radius .3s var(--ease);
+      km-icon { transition: transform .4s var(--spring); }
+      &:active { transform: translateY(-14px) scale(.9); border-radius: 27px; transition-duration: .1s; km-icon { transform: rotate(90deg); } }
+    }
+  }
+  .tabbar[data-dir='next'] .ind { --dl: .07s; }
+  .tabbar[data-dir='prev'] .ind { --dr: .07s; }
+  .shell.detail:not(.full) .tabbar { display: none; }
+  .kinds { grid-template-columns: repeat(2, 1fr); }
+  .sheet-head h2 { font-size: 22px; }
 }

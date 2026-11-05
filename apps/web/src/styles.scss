@@ -1,65 +1,72 @@
-/* Keyme · "Bóveda cálida" ------------------------------------------------- */
+/* Keyme · "Bóveda cálida" 2 ---------------------------------------------- */
 
 :root {
   --font-display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
   --font-ui: 'Inter Tight Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', monospace;
 
-  --bg: #120f0d;
-  --bg-rail: #17130f;
-  --surface: #1e1915;
+  --bg: #110e0c;
+  --bg-rail: #0c0a08;
+  --bg-elev: #16120f;
+  --surface: #1d1814;
   --surface-2: #26201b;
-  --surface-3: #2f2822;
-  --line: #352d26;
-  --line-strong: #4a3f35;
-  --text: #f3e8d8;
-  --text-2: #bfae98;
-  --text-3: #8a7a66;
-  --accent: #e7a65a;
-  --accent-2: #c97a3c;
-  --accent-soft: rgba(231, 166, 90, 0.13);
+  --surface-3: #312922;
+  --line: #2f2822;
+  --line-strong: #463b31;
+  --text: #f6ecdd;
+  --text-2: #c3b29c;
+  --text-3: #8d7d69;
+  --accent: #eeaa5c;
+  --accent-2: #c9773a;
+  --accent-soft: rgba(238, 170, 92, 0.14);
   --accent-ink: #1e1309;
-  --danger: #e57a63;
-  --danger-soft: rgba(229, 122, 99, 0.13);
-  --ok: #93c39a;
-  --ok-soft: rgba(147, 195, 154, 0.13);
-  --warn: #e8c35f;
-  --warn-soft: rgba(232, 195, 95, 0.13);
-  --focus: 0 0 0 3px rgba(231, 166, 90, 0.35);
-  --shadow: 0 1px 0 rgba(255, 240, 220, 0.04) inset, 0 12px 32px -12px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 30px 80px -20px rgba(0, 0, 0, 0.75);
-  --radius: 14px;
-  --radius-sm: 9px;
-  --rail-w: 268px;
-  --list-w: 380px;
+  --danger: #ec7f68;
+  --danger-soft: rgba(236, 127, 104, 0.14);
+  --ok: #95c99c;
+  --ok-soft: rgba(149, 201, 156, 0.14);
+  --warn: #ebc562;
+  --warn-soft: rgba(235, 197, 98, 0.14);
+  --focus: 0 0 0 3px rgba(238, 170, 92, 0.38);
+  --shadow: 0 1px 0 rgba(255, 240, 220, 0.04) inset, 0 12px 32px -14px rgba(0, 0, 0, 0.65);
+  --shadow-lg: 0 30px 80px -20px rgba(0, 0, 0, 0.8);
+  --glass: rgba(22, 18, 15, 0.72);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --rail-w: 84px;
+  --list-w: 400px;
+  --tap: 48px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-emph: cubic-bezier(0.2, 0, 0, 1);
+  --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   color-scheme: dark;
 }
 
 @mixin light {
-  --bg: #f5eee3;
-  --bg-rail: #efe5d6;
+  --bg: #f6efe4;
+  --bg-rail: #ede3d3;
+  --bg-elev: #fbf6ee;
   --surface: #fffaf3;
-  --surface-2: #f7efe3;
-  --surface-3: #efe4d4;
-  --line: #e3d5c1;
+  --surface-2: #f5ece0;
+  --surface-3: #ece0cf;
+  --line: #e4d6c2;
   --line-strong: #cdb99f;
-  --text: #2a2018;
-  --text-2: #6a5846;
-  --text-3: #978470;
-  --accent: #b8661c;
-  --accent-2: #9a4f12;
-  --accent-soft: rgba(184, 102, 28, 0.1);
+  --text: #261c14;
+  --text-2: #64523f;
+  --text-3: #93806b;
+  --accent: #b5621a;
+  --accent-2: #964c10;
+  --accent-soft: rgba(181, 98, 26, 0.11);
   --accent-ink: #fff8ee;
   --danger: #b9472f;
   --danger-soft: rgba(185, 71, 47, 0.1);
   --ok: #3f7d4a;
-  --ok-soft: rgba(63, 125, 74, 0.1);
+  --ok-soft: rgba(63, 125, 74, 0.11);
   --warn: #93700f;
-  --warn-soft: rgba(147, 112, 15, 0.1);
-  --focus: 0 0 0 3px rgba(184, 102, 28, 0.25);
-  --shadow: 0 1px 2px rgba(80, 50, 20, 0.06), 0 10px 28px -14px rgba(80, 50, 20, 0.25);
-  --shadow-lg: 0 30px 70px -24px rgba(80, 50, 20, 0.35);
+  --warn-soft: rgba(147, 112, 15, 0.11);
+  --focus: 0 0 0 3px rgba(181, 98, 26, 0.26);
+  --shadow: 0 1px 2px rgba(80, 50, 20, 0.06), 0 10px 28px -14px rgba(80, 50, 20, 0.28);
+  --shadow-lg: 0 30px 70px -24px rgba(80, 50, 20, 0.38);
+  --glass: rgba(251, 246, 238, 0.78);
   color-scheme: light;
 }
 
@@ -87,10 +94,11 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 400 15px/1.5 var(--font-ui);
+  font: 400 16px/1.5 var(--font-ui);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* Sensación de app nativa: sin el destello azul de Android al tocar, sin
@@ -130,22 +138,23 @@ h2,
 h3 {
   font-family: var(--font-display);
   font-weight: 560;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   margin: 0;
 }
 
 h1 {
-  font-size: 30px;
-  line-height: 1.15;
+  font-size: 34px;
+  line-height: 1.12;
 }
 h2 {
-  font-size: 22px;
+  font-size: 24px;
+  line-height: 1.2;
 }
 h3 {
-  font-size: 16px;
+  font-size: 17px;
   font-family: var(--font-ui);
-  font-weight: 600;
-  letter-spacing: 0;
+  font-weight: 650;
+  letter-spacing: -0.005em;
 }
 
 .mono {
@@ -161,17 +170,18 @@ h3 {
   color: var(--text-3);
 }
 .small {
-  font-size: 13px;
+  font-size: 14px;
 }
 .tiny {
-  font-size: 11.5px;
+  font-size: 12.5px;
 }
 .eyebrow {
-  font-size: 11px;
+  font-size: 11.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-3);
-  font-weight: 600;
+  font-weight: 650;
+  margin: 0;
 }
 
 ::-webkit-scrollbar {
@@ -204,16 +214,16 @@ h3 {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 38px;
-  padding: 0 15px;
-  border-radius: 11px;
+  height: 42px;
+  padding: 0 17px;
+  border-radius: 13px;
   border: 1px solid var(--b-line);
   background: var(--b-bg);
   color: var(--b-fg);
-  font: 550 14px/1 var(--font-ui);
+  font: 600 15px/1 var(--font-ui);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, filter 0.15s, transform 0.18s var(--ease);
+  transition: background 0.15s, border-color 0.15s, color 0.15s, filter 0.15s, box-shadow 0.2s, transform 0.25s var(--spring);
   user-select: none;
   text-decoration: none;
 
@@ -225,8 +235,8 @@ h3 {
   }
   &:active {
     --b-bg: var(--surface-3);
-    transform: scale(0.97);
-    transition-duration: 0.06s;
+    transform: scale(0.96);
+    transition-duration: 0.08s;
   }
   &:disabled {
     opacity: 0.45;
@@ -236,7 +246,7 @@ h3 {
     --b-bg: var(--accent);
     --b-fg: var(--accent-ink);
     --b-line: transparent;
-    box-shadow: 0 6px 18px -8px var(--accent);
+    box-shadow: 0 8px 22px -10px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.25);
     @media (hover: hover) {
       &:hover {
         --b-bg: color-mix(in oklab, var(--accent) 88%, white);
@@ -246,6 +256,16 @@ h3 {
       --b-bg: var(--accent);
       filter: brightness(0.92);
       box-shadow: 0 3px 10px -6px var(--accent);
+    }
+  }
+  &.tonal {
+    --b-bg: var(--accent-soft);
+    --b-fg: var(--accent);
+    --b-line: transparent;
+    @media (hover: hover) {
+      &:hover {
+        --b-bg: color-mix(in oklab, var(--accent) 22%, transparent);
+      }
     }
   }
   &.ghost {
@@ -276,26 +296,32 @@ h3 {
     }
   }
   &.lg {
-    height: 48px;
-    padding: 0 22px;
-    font-size: 15px;
-    border-radius: 13px;
+    height: 52px;
+    padding: 0 24px;
+    font-size: 16px;
+    border-radius: 16px;
   }
   &.sm {
-    height: 30px;
-    padding: 0 10px;
-    font-size: 13px;
-    border-radius: 9px;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 14px;
+    border-radius: 11px;
   }
   &.icon {
-    width: 38px;
+    width: 42px;
     padding: 0;
     &:active {
-      transform: scale(0.9);
+      transform: scale(0.88);
     }
     &.sm {
-      width: 30px;
+      width: 34px;
     }
+    &.lg {
+      width: 52px;
+    }
+  }
+  &.round {
+    border-radius: 999px;
   }
   &.block {
     width: 100%;
@@ -315,17 +341,22 @@ h3 {
   color: var(--text-3);
   justify-content: center;
 }
+@media (hover: none) {
+  .kbd {
+    display: none !important;
+  }
+}
 
 /* Campos ---------------------------------------------------------------- */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
 
   > label,
   > .label {
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 600;
     color: var(--text-2);
     display: flex;
@@ -339,14 +370,14 @@ h3 {
 .field select,
 .field textarea {
   width: 100%;
-  height: 42px;
-  padding: 0 13px;
-  border-radius: 11px;
+  height: 50px;
+  padding: 0 15px;
+  border-radius: 14px;
   border: 1px solid var(--line);
-  background: var(--surface);
+  background: var(--bg-elev);
   color: var(--text);
-  font: 400 15px var(--font-ui);
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  font: 400 16px var(--font-ui);
+  transition: border-color 0.15s, box-shadow 0.2s, background 0.15s;
   &::placeholder {
     color: var(--text-3);
   }
@@ -359,28 +390,29 @@ h3 {
     outline: none;
     border-color: var(--accent);
     box-shadow: var(--focus);
-    background: var(--surface-2);
+    background: var(--surface);
   }
 }
 .field textarea {
   height: auto;
-  min-height: 96px;
-  padding: 11px 13px;
+  min-height: 110px;
+  padding: 13px 15px;
   resize: vertical;
-  line-height: 1.5;
+  line-height: 1.55;
 }
-.field select {
+.field select,
+select.input {
   appearance: none;
   background-image: linear-gradient(45deg, transparent 50%, var(--text-3) 50%), linear-gradient(135deg, var(--text-3) 50%, transparent 50%);
-  background-position: calc(100% - 18px) 18px, calc(100% - 13px) 18px;
+  background-position: calc(100% - 19px) 50%, calc(100% - 14px) 50%;
   background-size: 5px 5px;
   background-repeat: no-repeat;
-  padding-right: 34px;
+  padding-right: 36px;
 }
 .field .mono,
 .input.mono {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .input-wrap {
@@ -388,11 +420,11 @@ h3 {
   display: flex;
   align-items: center;
   input {
-    padding-right: 84px !important;
+    padding-right: 92px !important;
   }
   .adorn {
     position: absolute;
-    right: 5px;
+    right: 6px;
     display: flex;
     gap: 2px;
   }
@@ -401,45 +433,46 @@ h3 {
 .check {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
   user-select: none;
   input {
     appearance: none;
-    width: 36px;
-    height: 21px;
+    width: 44px;
+    height: 26px;
     border-radius: 20px;
     background: var(--surface-3);
     border: 1px solid var(--line-strong);
     position: relative;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.25s, border-color 0.25s;
     flex: none;
     margin: 0;
     &::after {
       content: '';
       position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 15px;
-      height: 15px;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       background: var(--text-2);
-      transition: transform 0.2s var(--ease), background 0.2s, width 0.2s var(--ease);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+      transition: transform 0.3s var(--spring), background 0.2s, width 0.2s var(--ease);
     }
     // Al presionar, el botón del switch se estira como en Android/iOS.
     &:active::after {
-      width: 19px;
+      width: 23px;
     }
     &:checked:active::after {
-      transform: translateX(11px);
+      transform: translateX(13px);
     }
     &:checked {
       background: var(--accent);
       border-color: var(--accent);
       &::after {
-        transform: translateX(15px);
+        transform: translateX(18px);
         background: var(--accent-ink);
       }
     }
@@ -449,31 +482,32 @@ h3 {
 input[type='range'] {
   accent-color: var(--accent);
   width: 100%;
+  height: 28px;
 }
 
 .seg {
   display: inline-flex;
-  padding: 3px;
+  padding: 4px;
   gap: 2px;
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--surface-2);
   border: 1px solid var(--line);
   button {
-    height: 32px;
-    padding: 0 13px;
+    height: 36px;
+    padding: 0 15px;
     border: 0;
-    border-radius: 9px;
+    border-radius: 10px;
     background: transparent;
     color: var(--text-2);
-    font: 550 13px var(--font-ui);
+    font: 600 14px var(--font-ui);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    transition: background 0.15s, color 0.15s, transform 0.18s var(--ease);
+    transition: background 0.2s, color 0.15s, box-shadow 0.2s, transform 0.25s var(--spring);
     &:active {
-      transform: scale(0.95);
-      transition-duration: 0.06s;
+      transform: scale(0.94);
+      transition-duration: 0.08s;
     }
     &.on {
       background: var(--surface);
@@ -495,12 +529,13 @@ input[type='range'] {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 24px;
-  padding: 0 9px;
+  height: 28px;
+  padding: 0 11px;
   border-radius: 20px;
   background: var(--surface-2);
   border: 1px solid var(--line);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-2);
   white-space: nowrap;
   &.accent {
@@ -548,9 +583,13 @@ input[type='range'] {
   text-align: center;
   gap: 10px;
   color: var(--text-3);
-  padding: 48px 24px;
+  padding: 56px 24px;
   h2 {
     color: var(--text);
+  }
+  p {
+    margin: 0;
+    max-width: 300px;
   }
 }
 
@@ -558,15 +597,19 @@ input[type='range'] {
 .page {
   height: 100%;
   overflow-y: auto;
-  padding: 28px clamp(18px, 4vw, 44px) 80px;
+  padding: 32px clamp(18px, 4vw, 48px) 96px;
 }
 .page-head {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 26px;
   flex-wrap: wrap;
+  h1 {
+    font-size: 38px;
+    margin-top: 4px;
+  }
 }
 
 .grid-2 {
@@ -579,14 +622,14 @@ input[type='range'] {
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(8, 6, 5, 0.62);
-  backdrop-filter: blur(6px);
+  background: rgba(8, 6, 5, 0.6);
+  backdrop-filter: blur(10px);
   z-index: 60;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 10vh 16px 16px;
-  animation: fade 0.15s ease-out;
+  animation: fade 0.18s ease-out;
 }
 .dialog {
   width: min(560px, 100%);
@@ -594,10 +637,76 @@ input[type='range'] {
   overflow: auto;
   background: var(--surface);
   border: 1px solid var(--line-strong);
-  border-radius: 18px;
+  border-radius: 22px;
   box-shadow: var(--shadow-lg);
-  padding: 22px;
-  animation: pop 0.2s var(--ease);
+  padding: 24px;
+  animation: pop 0.28s var(--spring);
+}
+
+/* Hoja inferior (móvil) / ventana centrada (escritorio) */
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  /* --k baja de 1 a 0 mientras arrastras la hoja hacia abajo. */
+  background: rgba(0, 0, 0, calc(0.5 * var(--k, 1)));
+  backdrop-filter: blur(calc(4px * var(--k, 1)));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: scrim-in 0.3s ease-out;
+  /* Solo se desvanece el fondo; la hoja tiene su propia salida. */
+  &.closing {
+    pointer-events: none;
+    animation: scrim-out 0.26s ease-in both;
+  }
+  &.closing .sheet {
+    animation: sheet-out 0.26s cubic-bezier(0.3, 0, 0.8, 0.15) both;
+  }
+}
+.sheet {
+  width: min(560px, 100%);
+  max-height: 88dvh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-bottom: 0;
+  border-radius: 28px 28px 0 0;
+  padding: 10px 18px calc(22px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-lg);
+  animation: sheet-in 0.42s var(--ease-emph);
+  overscroll-behavior: contain;
+  &.still,
+  .sheet-head {
+    touch-action: pan-x;
+  }
+  &::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 5px;
+    border-radius: 5px;
+    background: var(--line-strong);
+    margin: 0 auto 14px;
+  }
+}
+@media (min-width: 861px) {
+  .sheet-scrim {
+    align-items: center;
+  }
+  .sheet {
+    border-radius: 26px;
+    border-bottom: 1px solid var(--line-strong);
+    padding-top: 22px;
+    padding-bottom: 22px;
+    animation: pop 0.3s var(--spring);
+    &::before {
+      display: none;
+    }
+  }
+  .sheet-scrim.closing .sheet {
+    animation: pop-out 0.18s ease-in both;
+  }
 }
 
 @keyframes fade {
@@ -608,19 +717,53 @@ input[type='range'] {
 @keyframes pop {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(10px) scale(0.96);
   }
 }
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes scrim-in {
+  from {
+    background: transparent;
+    backdrop-filter: blur(0);
+  }
+}
+@keyframes scrim-out {
+  to {
+    background: transparent;
+    backdrop-filter: blur(0);
+  }
+}
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
   }
 }
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Entrada escalonada de listas y tarjetas: style="--i: n" en cada hijo. */
+.stagger > * {
+  animation: rise 0.42s var(--ease-emph) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 28ms);
 }
 
 .spinner {
@@ -633,11 +776,289 @@ input[type='range'] {
   display: inline-block;
 }
 
+/* Transiciones entre pantallas (View Transitions API) -------------------
+   Cada transición tiene un inicio y un fin claros:
+   - Avanzar (lista > ficha > editor) entra desde la derecha y la pantalla
+     anterior se hunde a la izquierda; volver hace lo contrario.
+   - Cambiar de pestaña desliza en el sentido de la pestaña: horizontal en el
+     teléfono (barra inferior) y vertical en la computadora (riel).
+   - La hoja "Nuevo" crece desde el botón + y se expande hasta el editor.
+   - El ícono del elemento viaja de la lista a la ficha (km-hero).
+   Lo que no tiene nombre cambia de golpe, así nada se queda "detrás". */
+::view-transition-group(*) {
+  animation-duration: 0.42s;
+  animation-timing-function: var(--ease-emph);
+}
+::view-transition-old(root) {
+  display: none;
+}
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-old(km-main) {
+  animation: vt-out 0.18s ease-in both;
+}
+::view-transition-new(km-main) {
+  animation: vt-in 0.34s var(--ease-emph) both;
+}
+/* La barra inferior se ve en vivo: su indicador viaja con la pantalla. */
+::view-transition-old(km-tabbar) {
+  display: none;
+}
+::view-transition-new(km-tabbar) {
+  animation: none;
+}
+::view-transition-group(km-tabbar) {
+  z-index: 4;
+}
+
+/* Cambio de pestaña: eje compartido. */
+:root.vt-tab-next::view-transition-old(km-main),
+:root.vt-tab-next::view-transition-old(km-list) {
+  animation: vt-axis-out-next 0.3s var(--ease-emph) both;
+}
+:root.vt-tab-next::view-transition-new(km-main),
+:root.vt-tab-next::view-transition-new(km-list) {
+  animation: vt-axis-in-next 0.46s var(--ease-emph) both;
+}
+:root.vt-tab-prev::view-transition-old(km-main),
+:root.vt-tab-prev::view-transition-old(km-list) {
+  animation: vt-axis-out-prev 0.3s var(--ease-emph) both;
+}
+:root.vt-tab-prev::view-transition-new(km-main),
+:root.vt-tab-prev::view-transition-new(km-list) {
+  animation: vt-axis-in-prev 0.46s var(--ease-emph) both;
+}
+@keyframes vt-axis-out-next {
+  to {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+}
+@keyframes vt-axis-in-next {
+  from {
+    opacity: 0;
+    transform: translateY(56px);
+  }
+}
+@keyframes vt-axis-out-prev {
+  to {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+@keyframes vt-axis-in-prev {
+  from {
+    opacity: 0;
+    transform: translateY(-56px);
+  }
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Hoja "Nuevo" > editor: la hoja se expande hasta llenar el panel. */
+:root.vt-sheet-src .sheet-scrim {
+  view-transition-name: km-scrim;
+}
+:root.vt-sheet-src .sheet.new-sheet {
+  view-transition-name: km-main;
+}
+:root.vt-sheet-src .outlet {
+  view-transition-name: none !important;
+}
+:root.vt-sheet::view-transition-group(km-main) {
+  /* Fondo sólido: mientras una imagen sale y la otra entra no se transparenta. */
+  background: var(--surface);
+  animation-duration: 0.5s;
+  overflow: hidden;
+  border-radius: 28px;
+  z-index: 5;
+}
+:root.vt-sheet::view-transition-old(km-main) {
+  animation: vt-fade-out 0.18s ease-in both;
+}
+:root.vt-sheet::view-transition-new(km-main) {
+  animation: vt-fade-in 0.3s 0.06s ease-out both;
+}
+:root.vt-sheet::view-transition-old(km-scrim) {
+  animation: vt-fade-out 0.45s ease-out both;
+}
+:root.vt-sheet::view-transition-old(km-list),
+:root.vt-sheet::view-transition-old(km-tabbar) {
+  display: block;
+  animation: none;
+}
+:root.vt-sheet::view-transition-old(km-tabbar) {
+  animation: vt-drop 0.3s ease-in both;
+}
+
+/* Botón + > hoja "Nuevo": la hoja nace del botón. */
+:root.vt-fab .sheet.new-sheet {
+  view-transition-name: km-fab;
+  animation: none;
+}
+:root.vt-fab .sheet-scrim {
+  view-transition-name: km-scrim;
+  animation: none;
+}
+:root.vt-fab::view-transition-group(km-fab) {
+  background: var(--surface);
+  animation-duration: 0.46s;
+  overflow: hidden;
+  border-radius: 24px;
+  z-index: 6;
+}
+:root.vt-fab::view-transition-old(km-fab) {
+  animation: vt-fade-out 0.14s ease-in both;
+}
+:root.vt-fab::view-transition-new(km-fab) {
+  animation: vt-fade-in 0.24s 0.04s ease-out both;
+}
+:root.vt-fab::view-transition-new(km-scrim) {
+  animation: vt-fade-in 0.36s ease-out both;
+}
+:root.vt-fab::view-transition-group(km-scrim) {
+  z-index: 5;
+}
+
+/* Cambios dentro de una misma pantalla: lo demás se queda quieto. */
+:root.vt-local::view-transition-old(km-main),
+:root.vt-local::view-transition-old(km-list),
+:root.vt-local::view-transition-old(km-tabbar) {
+  display: none;
+}
+:root.vt-local::view-transition-new(km-main),
+:root.vt-local::view-transition-new(km-list),
+:root.vt-local::view-transition-new(km-tabbar) {
+  animation: none;
+}
+/* Elegir servicio en el editor: el logo vuela a la vista previa. */
+:root.vt-pick::view-transition-old(km-main) {
+  display: block;
+  animation: vt-out 0.16s ease-in both;
+}
+:root.vt-pick::view-transition-new(km-main) {
+  animation: vt-in 0.36s 0.06s var(--ease-emph) both;
+}
+:root.vt-pick::view-transition-group(km-hero) {
+  animation-duration: 0.5s;
+  z-index: 6;
+}
+
+@media (max-width: 860px) {
+  /* En el teléfono las pestañas se deslizan de lado, siguiendo la barra. */
+  @keyframes vt-axis-out-next {
+    to {
+      opacity: 0;
+      transform: translateX(-22%);
+    }
+  }
+  @keyframes vt-axis-in-next {
+    from {
+      opacity: 0;
+      transform: translateX(30%);
+    }
+  }
+  @keyframes vt-axis-out-prev {
+    to {
+      opacity: 0;
+      transform: translateX(22%);
+    }
+  }
+  @keyframes vt-axis-in-prev {
+    from {
+      opacity: 0;
+      transform: translateX(-30%);
+    }
+  }
+  /* Avanzar: la pantalla nueva entra desde la derecha; volver: al revés. */
+  :root.vt-forward::view-transition-group(km-main),
+  :root.vt-back::view-transition-group(km-main) {
+    z-index: 5;
+  }
+  :root.vt-forward::view-transition-old(km-main) {
+    animation: vt-slide-out-left 0.42s var(--ease-emph) both;
+  }
+  :root.vt-forward::view-transition-new(km-main) {
+    animation: vt-slide-in-right 0.42s var(--ease-emph) both;
+  }
+  :root.vt-back::view-transition-old(km-main) {
+    animation: vt-slide-out-right 0.38s var(--ease-emph) both;
+  }
+  :root.vt-back::view-transition-new(km-main) {
+    animation: vt-slide-in-left 0.38s var(--ease-emph) both;
+  }
+  /* La lista y la barra inferior se van juntas a la izquierda, bajo la ficha. */
+  :root.vt-forward::view-transition-old(km-list),
+  :root.vt-forward::view-transition-old(km-tabbar) {
+    display: block;
+    animation: vt-slide-out-left 0.42s var(--ease-emph) both;
+  }
+  :root.vt-back::view-transition-new(km-list),
+  :root.vt-back::view-transition-new(km-tabbar) {
+    animation: vt-slide-in-left 0.38s var(--ease-emph) both;
+  }
+  :root.vt-same::view-transition-old(km-main) {
+    animation: vt-out 0.16s ease-in both;
+  }
+}
+@keyframes vt-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes vt-slide-out-left {
+  to {
+    transform: translateX(-28%);
+    filter: brightness(0.55);
+  }
+}
+@keyframes vt-slide-in-left {
+  from {
+    transform: translateX(-28%);
+    filter: brightness(0.55);
+  }
+}
+@keyframes vt-slide-out-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes vt-drop {
+  to {
+    transform: translateY(120%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
-  *::after {
+  *::after,
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
 }
@@ -654,4 +1075,29 @@ km-settings {
   height: 100%;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Pantallas completas en móvil: respetar la barra de estado del sistema. */
+@media (max-width: 860px) {
+  .page {
+    padding-top: calc(24px + env(safe-area-inset-top));
+  }
+}
+.sheet.new-sheet {
+  width: min(620px, 100%);
+}
+/* Hoja abierta con morph: su entrada ya la hizo la transición. */
+.sheet-scrim.morphed:not(.closing),
+.sheet-scrim.morphed:not(.closing) .sheet.morphed {
+  animation: none;
+}
+
+/* Las pestañas con barra inferior dejan espacio para la isla flotante. */
+@media (max-width: 860px) {
+  km-wallet .page,
+  km-generator .page,
+  km-health .page,
+  km-settings .page {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
 }

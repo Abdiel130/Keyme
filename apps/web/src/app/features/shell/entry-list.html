@@ -1,72 +1,184 @@
-<header class="head">
+<header class="head" [class.scrolled]="scrolled()">
   <div class="title-row">
-    <button class="btn icon ghost burger" (click)="ui.railOpen.set(true)" aria-label="Menú"><km-icon name="menu" /></button>
-    <h2>{{ ui.filterTitle() }}</h2>
+    <h1>{{ ui.filter().type === 'all' ? 'Bóveda' : ui.filterTitle() }}</h1>
     <span class="count">{{ ui.filtered().length }}</span>
-    <button class="btn icon sm ghost lock-m" (click)="store.lock()" aria-label="Bloquear"><km-icon name="lock" [size]="16" /></button>
+    <span class="grow"></span>
+    <div class="sort">
+      <button class="btn sm ghost" (click)="sortOpen.set(!sortOpen())" [attr.aria-expanded]="sortOpen()" title="Ordenar">
+        <km-icon name="sliders" [size]="16" /> <span class="sort-l">{{ sortLabel() }}</span>
+      </button>
+      @if (sortOpen()) {
+        <div class="menu-scrim" (click)="sortOpen.set(false)"></div>
+        <div class="menu" role="menu">
+          @for (s of sorts; track s.id) {
+            <button role="menuitemradio" [attr.aria-checked]="ui.sort() === s.id" [class.on]="ui.sort() === s.id" (click)="setSort(s.id)">
+              <km-icon [name]="s.icon" [size]="17" /> {{ s.label }}
+              @if (ui.sort() === s.id) { <km-icon name="check" [size]="17" class="ok" /> }
+            </button>
+          }
+          @if (ui.filter().type === 'all') {
+            <div class="divider"></div>
+            <button role="menuitemcheckbox" [attr.aria-checked]="ui.grouped()" (click)="ui.setGrouped(!ui.grouped()); sortOpen.set(false)">
+              <km-icon name="layers" [size]="17" /> Agrupar por servicio
+              @if (ui.grouped()) { <km-icon name="check" [size]="17" class="ok" /> }
+            </button>
+          }
+        </div>
+      }
+    </div>
+    <button class="btn icon ghost m-only" (click)="ui.paletteOpen.set(true)" aria-label="Buscar y copiar"><km-icon name="command" [size]="20" /></button>
+    <button class="btn icon ghost m-only" (click)="store.lock()" aria-label="Bloquear"><km-icon name="lock" [size]="20" /></button>
   </div>
-  <div class="search">
-    <km-icon name="search" [size]="16" />
-    <input id="km-search" type="search" placeholder="Filtrar…" [value]="ui.query()" (input)="ui.query.set($any($event.target).value)"
-           (keydown)="onKey($event)" autocomplete="off" spellcheck="false" />
+
+  <label class="search">
+    <km-icon name="search" [size]="19" />
+    <input id="km-search" type="search" [placeholder]="'Buscar en ' + store.entries().length + ' elementos'" [value]="ui.query()"
+           (input)="ui.query.set($any($event.target).value)" (keydown)="onKey($event)" autocomplete="off" spellcheck="false" enterkeyhint="search" />
     @if (ui.query()) {
-      <button class="btn icon sm ghost" (click)="ui.query.set('')" aria-label="Limpiar"><km-icon name="x" [size]="14" /></button>
+      <button class="btn icon sm ghost" (click)="ui.query.set('')" aria-label="Limpiar"><km-icon name="x" [size]="16" /></button>
     } @else {
       <span class="kbd">/</span>
     }
-  </div>
-  @if (!ui.query()) {
-    <div class="sorts">
-      @for (s of sorts; track s.id) {
-        <button [class.on]="ui.sort() === s.id" (click)="ui.setSort(s.id)">{{ s.label }}</button>
-      }
-    </div>
-  }
-</header>
+  </label>
 
-<div class="scroll" tabindex="-1" (keydown)="onKey($event)">
-  @if (ui.filter().type === 'all' && !ui.query() && expiring().length) {
-    <button class="expiring" (click)="open(expiring()[0].entry)">
-      <km-icon name="clock" [size]="16" />
-      <span>
-        <b>{{ expiring()[0].entry.title || 'Documento' }}</b>
-        {{ expiring()[0].days < 0 ? 'venció hace ' + -expiring()[0].days + ' días' : expiring()[0].days === 0 ? 'vence hoy' : 'vence en ' + expiring()[0].days + ' días' }}
-        @if (expiring().length > 1) { <span class="faint"> · y {{ expiring().length - 1 }} más</span> }
-      </span>
-    </button>
-  }
-
-  @for (e of ui.filtered(); track e.id) {
-    <div class="item" role="button" tabindex="0" [attr.data-id]="e.id" [class.on]="selected() === e.id" (click)="open(e)" (keydown.enter)="open(e)">
-      <km-avatar [entry]="e" [ring]="spaceColor(e)" [size]="38" />
-      <div class="txt">
-        <div class="t">{{ e.title || 'Sin título' }}
-          @if (e.favorite) { <km-icon name="star" [size]="12" class="fav" /> }
-        </div>
-        <div class="s">
-          @let st = sub(e);
-          @if (spaceName(e) && ui.filter().type !== 'space') { <span class="sp" [class.solo]="!st" [style.--c]="spaceColor(e)">{{ spaceName(e) }}</span> }
-          {{ st }}
-        </div>
-      </div>
-      @if (e.kind === 'login' || e.kind === 'wifi' || e.kind === 'card') {
-        <button class="btn icon sm ghost qc" (click)="quickCopy($event, e)" [title]="e.kind === 'card' ? 'Copiar número' : 'Copiar contraseña'">
-          <km-icon [name]="e.kind === 'card' ? 'card' : 'key'" [size]="15" />
+  <div class="chips-row">
+    <div class="chips" role="tablist" aria-label="Filtros">
+      @for (c of chips(); track c.label) {
+        <button class="fchip" role="tab" [class.on]="isActive(c.f)" [attr.aria-selected]="isActive(c.f)" (click)="pick(c.f, $event)" [style.--c]="c.color ?? null">
+          @if (c.color) { <i class="sw"></i> } @else if (c.icon) { <km-icon [name]="c.icon" [size]="15" /> }
+          {{ c.label }} <span class="n">{{ c.n }}</span>
         </button>
       }
     </div>
-  } @empty {
+  </div>
+</header>
+
+<div class="scroll" tabindex="-1" (keydown)="onKey($event)" (scroll)="onScroll($event)">
+  @if (ui.filter().type === 'all' && !ui.query() && expiring().length) {
+    @let x = expiring()[0];
+    <button class="expiring" (click)="open(x.entry)">
+      <span class="ei"><km-icon name="clock" [size]="18" /></span>
+      <span class="et">
+        <b>{{ x.entry.title || 'Documento' }}</b>
+        <span>{{ x.days < 0 ? 'Venció hace ' + -x.days + ' días' : x.days === 0 ? 'Vence hoy' : 'Vence en ' + x.days + ' días' }}@if (expiring().length > 1) { · y {{ expiring().length - 1 }} más}</span>
+      </span>
+      <km-icon name="chevron" [size]="18" />
+    </button>
+  }
+
+  @if (quick().length) {
+    <section class="quick">
+      <p class="eyebrow">{{ quickLabel() }}</p>
+      <div class="qrow">
+        @for (e of quick(); track e.id; let i = $index) {
+          <button class="qt" [style.--i]="i" (click)="open(e)" [title]="e.title">
+            <km-avatar [entry]="e" [size]="54" [ring]="spaceColor(e)" />
+            <span>{{ e.title || 'Sin título' }}</span>
+          </button>
+        }
+      </div>
+    </section>
+  }
+
+  @if (!ui.filtered().length) {
     <div class="empty">
       @if (ui.query()) {
-        <km-icon name="search" [size]="28" />
+        <span class="ei big"><km-icon name="search" [size]="30" /></span>
+        <h2>Sin resultados</h2>
         <p>Nada coincide con “{{ ui.query() }}”.</p>
       } @else if (store.entries().length === 0) {
-        <km-icon name="sparkle" [size]="30" />
-        <h2>Tu vault está vacío</h2>
-        <p>Crea tu primer elemento con <b>Nuevo</b> o importa desde SafeInCloud en Ajustes.</p>
+        <span class="ei big"><km-icon name="sparkle" [size]="30" /></span>
+        <h2>Tu bóveda está vacía</h2>
+        <p>Guarda tu primera cuenta o trae todo desde SafeInCloud, Bitwarden o Chrome.</p>
+        <div class="empty-acts">
+          <button class="btn primary" (click)="ui.newMenuOpen.set(true)"><km-icon name="plus" [size]="18" /> Agregar</button>
+          <button class="btn" (click)="goImport()"><km-icon name="upload" [size]="18" /> Importar</button>
+        </div>
       } @else {
         <p>No hay elementos aquí todavía.</p>
       }
     </div>
   }
+  @if (ui.groups(); as groups) {
+    <div class="rows stagger">
+      @for (g of groups; track g.key; let gi = $index) {
+        @if (g.entries.length === 1) {
+          <ng-container *ngTemplateOutlet="row; context: { $implicit: g.entries[0], i: gi, child: false }" />
+        } @else {
+          @let isOpenG = isOpen(g);
+          <div class="group-wrap" [class.open]="isOpenG" [style.--i]="gi">
+            <div class="item group" role="button" tabindex="0" [attr.aria-expanded]="isOpenG" (click)="toggle(g)" (keydown.enter)="toggle(g)">
+              <km-avatar [entry]="g.entries[0]" [size]="46" [badge]="g.entries.length" />
+              <div class="txt">
+                <div class="t">{{ g.name }}</div>
+                <div class="s">{{ kindsOf(g) }}@if (ownersOf(g); as o) { · {{ o }}}</div>
+              </div>
+              <span class="stack">
+                @for (e of g.entries.slice(0, 4); track e.id) { <i [style.background]="ownerColor(e) ?? spaceColor(e) ?? 'var(--line-strong)'"></i> }
+              </span>
+              <km-icon class="chev" name="chevron" [size]="18" />
+            </div>
+            @if (isOpenG) {
+              <div class="children">
+                @for (e of g.entries; track e.id; let ci = $index) {
+                  <ng-container *ngTemplateOutlet="row; context: { $implicit: e, i: ci, child: true }" />
+                }
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  } @else {
+    @for (sec of sections(); track sec.key) {
+      @if (sec.label) { <p class="letter">{{ sec.label }}</p> }
+      <div class="rows stagger">
+        @for (e of sec.entries; track e.id; let i = $index) {
+          <ng-container *ngTemplateOutlet="row; context: { $implicit: e, i: i, child: false }" />
+        }
+      </div>
+    }
+  }
+  @if (ui.filtered().length && !ui.query()) {
+    <p class="hint-swipe faint">Desliza una fila → para copiar la contraseña, ← para el usuario.</p>
+  }
 </div>
+
+<ng-template #row let-e let-i="i" let-child="child">
+  @let off = dx(e);
+  <div class="swipe" [style.--i]="i" [class.child-wrap]="child" [class.armed-r]="off >= swipeAt" [class.armed-l]="off <= -swipeAt" [class.dragging]="off !== 0">
+    @if (off > 0) { <span class="act r"><km-icon [name]="e.kind === 'card' ? 'card' : 'key'" [size]="20" /> {{ e.kind === 'card' || e.kind === 'document' ? 'Número' : 'Contraseña' }}</span> }
+    @if (off < 0) { <span class="act l">{{ e.kind === 'wifi' ? 'Red' : 'Usuario' }} <km-icon name="identity" [size]="20" /></span> }
+    <div class="item" role="button" tabindex="0" [attr.data-id]="e.id" [class.child]="child"
+         [class.on]="selected() === e.id" [class.morph]="lastOpened() === e.id || selected() === e.id"
+         [style.transform]="off ? 'translateX(' + off + 'px)' : null"
+         (click)="open(e)" (keydown.enter)="open(e)"
+         (pointerdown)="down($event, e)" (pointermove)="moveRow($event, e)" (pointerup)="up(e)" (pointercancel)="up(e)">
+      <km-avatar [entry]="e" [ring]="spaceColor(e)" [size]="46" />
+      <div class="txt">
+        <div class="t">{{ e.title || 'Sin título' }}
+          @if (e.favorite) { <km-icon name="star" [size]="13" class="fav" /> }
+        </div>
+        <div class="s">
+          @let st = child ? groupSub(e) : sub(e);
+          @if (ownerName(e) && ui.filter().type !== 'person') { <span class="sp owner" [class.solo]="!st && !(spaceName(e) && ui.filter().type !== 'space')" [style.--c]="ownerColor(e)">de {{ ownerName(e) }}</span> }
+          @if (spaceName(e) && ui.filter().type !== 'space') { <span class="sp" [class.solo]="!st" [style.--c]="spaceColor(e)">{{ spaceName(e) }}</span> }
+          {{ st }}
+        </div>
+      </div>
+      <div class="qa">
+        @if (userOf(e) && e.kind === 'login') {
+          <button class="qc" [class.done]="flash() === e.id + ':user'" (click)="copy($event, e, 'user')" title="Copiar usuario" aria-label="Copiar usuario">
+            <km-icon [name]="flash() === e.id + ':user' ? 'check' : 'identity'" [size]="18" />
+          </button>
+        }
+        @if (secretOf(e)) {
+          <button class="qc main" [class.done]="flash() === e.id + ':secret'" (click)="copy($event, e, 'secret')"
+                  [title]="e.kind === 'card' || e.kind === 'document' ? 'Copiar número' : 'Copiar contraseña'" [attr.aria-label]="e.kind === 'card' || e.kind === 'document' ? 'Copiar número' : 'Copiar contraseña'">
+            <km-icon [name]="flash() === e.id + ':secret' ? 'check' : e.kind === 'card' ? 'card' : 'key'" [size]="18" />
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</ng-template>

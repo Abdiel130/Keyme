@@ -22,11 +22,12 @@ import { Icon } from './icon';
   `,
   styles: `
     :host { position: fixed; z-index: 90; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
-    .toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 13px; background: var(--surface-3); border: 1px solid var(--line-strong); box-shadow: var(--shadow-lg); font-size: 14px; animation: rise .2s var(--ease); white-space: nowrap; }
+    .toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 18px; background: var(--surface-3); border: 1px solid var(--line-strong); box-shadow: var(--shadow-lg); font-size: 15px; font-weight: 550; animation: toast-in .4s var(--spring); white-space: nowrap; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(16px) scale(.9); } }
     .toast.ok km-icon { color: var(--ok); }
     .toast.error km-icon { color: var(--danger); }
     .count { font-size: 12px; color: var(--text-3); padding-left: 10px; border-left: 1px solid var(--line-strong); }
-    @media (max-width: 760px) { :host { bottom: 84px; } }
+    @media (max-width: 860px) { :host { bottom: calc(92px + env(safe-area-inset-bottom)); } }
   `,
 })
 export class ToastsOutlet {

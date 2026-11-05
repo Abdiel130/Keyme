@@ -1,30 +1,35 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { ApplicationRef, ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
-  DOC_LABELS, KIND_LABELS, baseDomain, detectNetwork, digitsOnly, formatCard, hostOf, isEntry, luhnValid, newEntry, uuidv7,
+  DOC_LABELS, KIND_LABELS, baseDomain, detectNetwork, digitsOnly, formatCard, hostOf, isEntry, luhnValid, newEntry, serviceKey, titlePrefix, uuidv7,
   type AttachmentRef, type CardEntry, type Entry, type EntryKind, type GeneratorRule, type LoginEntry, type UrlMatch,
 } from '@keyme/models';
+import { Brands, hueOf, type Brand } from '../../core/brands';
+import { morph } from '../../core/motion';
 import { generatePassphrase, generatePassword } from '../../core/generator';
 import { parseTotp } from '../../core/totp';
 import { Toasts } from '../../core/toasts';
 import { UiState } from '../../core/ui-state';
 import { VaultStore } from '../../core/vault.store';
+import { Avatar } from '../../ui/avatar';
+import { CardVisual } from '../../ui/card-visual';
 import { Icon } from '../../ui/icon';
 import { StrengthMeter } from '../../ui/strength-meter';
 
 /** Paquetes Android conocidos (verifícalos en la URL de Play Store: ...?id=<paquete>). */
 const BANK_APPS = [
-  { name: 'BBVA México', pkg: 'com.bancomer.mbanking' },
-  { name: 'Santander México', pkg: 'mx.bancosantander.supermovil' },
-  { name: 'Nu México', pkg: 'com.nu.production' },
-  { name: 'Mercado Pago', pkg: 'com.mercadopago.wallet' },
+  { name: 'BBVA México', pkg: 'com.bancomer.mbanking', brand: 'bbva' },
+  { name: 'Santander México', pkg: 'mx.bancosantander.supermovil', brand: 'santander' },
+  { name: 'Nu México', pkg: 'com.nu.production', brand: 'nubank' },
+  { name: 'Mercado Pago', pkg: 'com.mercadopago.wallet', brand: 'mercadopago' },
 ];
 
 @Component({
   selector: 'km-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, Icon, StrengthMeter],
+  imports: [FormsModule, NgTemplateOutlet, Avatar, CardVisual, Icon, StrengthMeter],
   templateUrl: './editor.html',
   styleUrl: './editor.scss',
   host: { '(document:keydown)': 'onKey($event)' },
@@ -34,11 +39,19 @@ export class Editor {
   protected ui = inject(UiState);
   private router = inject(Router);
   private toasts = inject(Toasts);
+  protected brands = inject(Brands);
+  private appRef = inject(ApplicationRef);
+  /** El logo elegido vuela a la vista previa (view-transition km-hero). */
+  protected readonly picked = signal(false);
 
   /** Ruta /item/:id/edit */
   readonly id = input<string>();
   /** Ruta /new/:kind */
   readonly kind = input<EntryKind>();
+  /** /new/:kind?like=<id>: otra cuenta del mismo servicio que ese elemento. */
+  readonly like = input<string>();
+  /** ?tab=bank: abrir la tarjeta en la pestaña de banca en línea. */
+  readonly tab = input<string>();
 
   // Borrador mutable: los campos se enlazan con ngModel y `touch()` notifica.
   protected draft!: Entry;
@@ -51,7 +64,20 @@ export class Editor {
   protected readonly tagsText = signal('');
   protected readonly codesText = signal('');
   protected readonly packagesText = signal('');
+  protected readonly brandQuery = signal('');
+  private readonly pickerDone = signal(false);
+  protected readonly showTotp = signal(false);
+  protected readonly showMore = signal(false);
+  protected readonly cardBack = signal(false);
+  protected readonly hues = [28, 210, 145, 0, 265, 330, 190, 50];
   private added: string[] = [];
+
+  // Tarjeta: pestaña de banca en línea
+  protected readonly cardTab = signal<'card' | 'bank'>('card');
+  /** existing: vincular un login que ya existe · new: crearlo aquí. */
+  protected readonly bankMode = signal<'existing' | 'new'>('existing');
+  protected bankUser = '';
+  protected bankPass = '';
   private original: AttachmentRef[] = [];
 
   protected readonly kindLabel = KIND_LABELS;
@@ -63,15 +89,69 @@ export class Editor {
       .sort((a, b) => a.title.localeCompare(b.title, 'es')),
   );
 
+  /** Logins para la banca en línea: primero los del mismo banco. */
+  protected readonly bankLogins = computed(() => {
+    this.rev();
+    if (this.draft?.kind !== 'card') return [];
+    const bank = this.card.bank.trim() ? serviceKey({ ...this.card, loginId: null }) : '';
+    const list = this.store.entries().filter((e): e is LoginEntry => e.kind === 'login' && !e.signInWith);
+    const same = (l: LoginEntry) => !!bank && (serviceKey(l) === bank || serviceKey({ ...l, urls: [] }) === bank);
+    return [...list].sort((a, b) => +same(b) - +same(a) || a.title.localeCompare(b.title, 'es'));
+  });
+
+  protected readonly bankLinked = computed(() => {
+    this.rev();
+    const id = this.draft?.kind === 'card' ? this.card.loginId : null;
+    const l = id ? this.store.get(id) : undefined;
+    return l?.kind === 'login' ? l : null;
+  });
+
+  /** Logins nuevos empiezan eligiendo el servicio. */
+  protected readonly picking = computed(() => {
+    this.rev();
+    return this.isNew() && this.draft?.kind === 'login' && !this.pickerDone();
+  });
+  protected readonly brandResults = computed(() => this.brands.search(this.brandQuery(), 15));
+  /** Copia del borrador para la vista previa (los componentes comparan por referencia). */
+  protected readonly snapshot = computed(() => {
+    this.rev();
+    return { ...this.draft } as Entry;
+  });
+  protected readonly previewBrand = computed(() => this.brands.forEntry(this.snapshot()));
+  protected readonly brandHex = computed(() => {
+    const b = this.draft?.kind === 'card' ? this.brands.forName(this.card.bank) : this.previewBrand();
+    return b ? `#${b.hex}` : null;
+  });
+  protected readonly bankKey = computed(() => {
+    this.rev();
+    return this.draft?.kind === 'card' ? this.brands.forName(this.card.bank)?.key ?? null : null;
+  });
+  protected readonly moreSummary = computed(() => {
+    this.rev();
+    const e = this.draft;
+    if (!e) return '';
+    const n = (k: number, one: string, many: string) => (k ? `${k} ${k === 1 ? one : many}` : '');
+    const tags = this.tagsText().split(',').filter((t) => t.trim()).length;
+    return [
+      e.kind === 'login' ? n(e.urls.length > 1 ? e.urls.length : 0, 'sitio', 'sitios') : '',
+      n(e.fields.length, 'campo', 'campos'),
+      n(tags, 'etiqueta', 'etiquetas'),
+      n(e.attachments.length, 'adjunto', 'adjuntos'),
+    ].filter(Boolean).join(' · ') || 'Campos, etiquetas, adjuntos';
+  });
+
   constructor() {
     effect(() => {
       const id = this.id();
       const kind = this.kind();
-      untracked(() => this.init(id, kind));
+      const like = this.like();
+      const tab = this.tab();
+      untracked(() => this.init(id, kind, like, tab));
     });
   }
 
-  private init(id: string | undefined, kind: EntryKind | undefined): void {
+  private init(id: string | undefined, kind: EntryKind | undefined, like?: string, tab?: string): void {
+    let liked = false;
     const rec = id ? this.store.records().get(id) : undefined;
     if (rec && isEntry(rec)) {
       this.draft = structuredClone(rec);
@@ -82,8 +162,23 @@ export class Editor {
       this.draft = newEntry(kind ?? 'login', space);
       if (f.type === 'fav') this.draft.favorite = true;
       if (f.type === 'tag') this.draft.tags = [f.tag];
+      if (f.type === 'person') this.draft.ownerId = f.id;
+      const base = like ? this.store.records().get(like) : undefined;
+      if (base && isEntry(base) && base.kind === this.draft.kind) {
+        this.copyService(base);
+        liked = true;
+      }
       this.isNew.set(true);
     }
+    this.pickerDone.set(liked);
+    this.cardTab.set(tab === 'bank' && this.draft.kind === 'card' ? 'bank' : 'card');
+    this.bankMode.set(this.draft.kind === 'card' && !this.card.loginId && !this.bankLogins().length ? 'new' : 'existing');
+    this.bankUser = '';
+    this.bankPass = '';
+    this.brandQuery.set('');
+    const e = this.draft;
+    this.showTotp.set(e.kind === 'login' && !!e.totp);
+    this.showMore.set(!!(e.fields.length || e.attachments.length || e.tags.length || (e.kind === 'login' && (e.urls.length > 1 || e.androidPackages.length || e.recoveryCodes.length))));
     this.original = [...this.draft.attachments];
     this.added = [];
     this.tagsText.set(this.draft.tags.join(', '));
@@ -92,6 +187,23 @@ export class Editor {
       this.packagesText.set(this.draft.androidPackages.join(', '));
     }
     this.touch();
+  }
+
+  /** Lo que comparten las cuentas de un servicio; las credenciales quedan vacías. */
+  private copyService(base: Entry): void {
+    const d = this.draft;
+    d.title = `${titlePrefix(base.title)} · `;
+    d.spaceId = base.spaceId;
+    d.ownerId = base.ownerId ?? null;
+    d.tags = [...base.tags];
+    if (base.kind === 'login' && d.kind === 'login') {
+      d.urls = base.urls.map((u) => ({ ...u }));
+      d.androidPackages = [...base.androidPackages];
+      d.generatorRule = base.generatorRule;
+    }
+    if (base.kind === 'card' && d.kind === 'card') {
+      Object.assign(d, { bank: base.bank, dynamicCvv: base.dynamicCvv, bankAppPackage: base.bankAppPackage, bankAppUrl: base.bankAppUrl, holder: base.holder, hue: base.hue });
+    }
   }
 
   protected touch(): void {
@@ -111,6 +223,36 @@ export class Editor {
   }
 
   // ----- Login ------------------------------------------------------------
+
+  protected pickBrand(b: Brand, ev?: Event): void {
+    const tile = ev?.currentTarget as HTMLElement | undefined;
+    const av = tile?.querySelector<HTMLElement>('km-avatar');
+    if (av) av.style.viewTransitionName = 'km-hero';
+    morph(this.appRef, () => {
+      if (!this.draft.title.trim()) this.draft.title = b.title;
+      if (!this.login.urls.length && b.domain) this.login.urls = [{ value: `https://${b.domain}`, match: 'base' }];
+      this.picked.set(!!av);
+      this.pickerDone.set(true);
+      this.touch();
+    }, 'vt-pick');
+    setTimeout(() => document.getElementById('user')?.focus({ preventScroll: true }), 520);
+  }
+
+  protected skipPicker(): void {
+    const q = this.brandQuery().trim();
+    morph(this.appRef, () => {
+      if (q && !this.draft.title.trim()) this.draft.title = q.charAt(0).toUpperCase() + q.slice(1);
+      this.pickerDone.set(true);
+      this.touch();
+    }, 'vt-pick');
+    setTimeout(() => document.querySelector<HTMLInputElement>(q ? '#user' : '.title-input')?.focus({ preventScroll: true }), 520);
+  }
+
+  protected setFirstUrl(v: string): void {
+    if (!this.login.urls.length) this.login.urls = [{ value: v, match: 'base' }];
+    else this.login.urls[0].value = v;
+    this.touch();
+  }
 
   protected addUrl(): void {
     this.login.urls = [...this.login.urls, { value: '', match: 'base' }];
@@ -205,6 +347,16 @@ export class Editor {
 
   // ----- Tarjeta ----------------------------------------------------------
 
+  protected pickBank(b: Brand): void {
+    const c = this.card;
+    c.bank = b.title;
+    if (!c.title.trim()) c.title = b.title;
+    c.hue = hueOf(b.hex);
+    const app = BANK_APPS.find((a) => a.brand === b.key);
+    if (app && !c.bankAppPackage) c.bankAppPackage = app.pkg;
+    this.touch();
+  }
+
   protected onCardNumber(v: string): void {
     this.card.number = digitsOnly(v).slice(0, 19);
     this.card.network = detectNetwork(this.card.number);
@@ -225,6 +377,25 @@ export class Editor {
     const n = digitsOnly(v).slice(0, 4);
     this.card.expiry = n.length > 2 ? `${n.slice(0, 2)}/${n.slice(2)}` : n;
     this.touch();
+  }
+
+  protected generateBankPass(): void {
+    this.bankPass = generatePassword(this.ruleFor());
+    this.showPass.set(true);
+    this.touch();
+  }
+
+  /** Crea el login de la banca en línea capturado en la pestaña y lo vincula. */
+  private async saveBankLogin(card: CardEntry): Promise<void> {
+    if (this.bankMode() !== 'new' || card.loginId || !(this.bankUser.trim() || this.bankPass)) return;
+    const l = newEntry('login', card.spaceId);
+    l.title = `${card.bank.trim() || titlePrefix(card.title) || 'Banco'} · Banca en línea`;
+    l.ownerId = card.ownerId ?? null;
+    l.username = this.bankUser.trim();
+    l.password = this.bankPass;
+    l.androidPackages = card.bankAppPackage ? [card.bankAppPackage] : [];
+    await this.store.save(l);
+    card.loginId = l.id;
   }
 
   // ----- Comunes ----------------------------------------------------------
@@ -263,7 +434,7 @@ export class Editor {
   protected async save(): Promise<void> {
     if (this.saving()) return;
     const e = this.draft;
-    e.title = e.title.trim() || this.fallbackTitle();
+    e.title = e.title.trim().replace(/\s*[·|–—-]$/, '') || this.fallbackTitle();
     e.tags = [...new Set(this.tagsText().split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean))];
     e.fields = e.fields.filter((f) => f.label.trim() || f.value);
     if (e.kind === 'login') {
@@ -275,6 +446,7 @@ export class Editor {
     }
     this.saving.set(true);
     try {
+      if (e.kind === 'card') await this.saveBankLogin(e);
       const saved = await this.store.save(e);
       // Adjuntos quitados en esta edición
       const kept = new Set(saved.attachments.map((a) => a.id));

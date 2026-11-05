@@ -7,6 +7,36 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-04
+
+El desbloqueo rápido ya funciona en Android. Con Keyme instalada en el
+teléfono, abres el vault con tu huella igual que en Windows con Windows
+Hello. Además la app se siente más nativa al tocarla: sin destellos azules y
+con una respuesta sutil al presionar.
+
+### Added
+- **`./up-version.sh --rollback`**: si te equivocaste de versión, deshace la
+  última subida en todos los archivos y devuelve sus notas a [Unreleased]
+  para volver a subir con la correcta. No toca versiones ya publicadas con
+  su tag.
+
+### Fixed
+- **Huella en Android**: activar el desbloqueo rápido en el teléfono ya no
+  falla con "no soporta PRF". Si Android pregunta dónde guardar la llave de
+  acceso, elige Google Password Manager; Samsung Pass y otros proveedores no
+  sirven para esto, y Keyme te lo dice si eliges uno de ellos.
+- **Sin llaves huérfanas**: si el proveedor elegido no sirve, Keyme le pide
+  borrar la llave que acaba de crear para que no se quede en tu lista.
+
+### Changed
+- **Nombre según el dispositivo**: el desbloqueo rápido se llama "Huella
+  digital" en la app instalada en Android, "Windows Hello" en Windows y
+  "Passkey" en los demás, en Ajustes, en la pantalla de desbloqueo y en los
+  avisos.
+- **Toques más naturales en el teléfono**: desaparece el resaltado azul al
+  tocar, los efectos de hover solo aparecen con mouse y botones, filas y
+  tarjetas responden con un ligero efecto al presionarlos.
+
 ## [1.1.0] - 2026-10-24
 
 Keyme ya se instala con un toque y se mantiene al día solo. El botón

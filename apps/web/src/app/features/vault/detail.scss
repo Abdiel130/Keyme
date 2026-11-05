@@ -8,24 +8,28 @@
 .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .sp { color: var(--c); background: color-mix(in oklab, var(--c) 14%, transparent); border-color: transparent; cursor: pointer; }
 .tagc { cursor: pointer; }
+.sp, .tagc { transition: transform .18s var(--ease); &:active { transform: scale(.94); transition-duration: .06s; } }
 h3 { margin: 26px 0 10px; display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 14px; }
 .sub { margin: -6px 0 10px; }
 .card-block { padding: 6px; display: flex; flex-direction: column; }
 .pad { padding: 8px 14px; margin: 0; }
 .meter { padding: 0 14px 10px; max-width: 260px; }
-.linked { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 14px; color: var(--text); border-color: color-mix(in oklab, var(--accent) 35%, var(--line)); background: linear-gradient(120deg, var(--accent-soft), var(--surface) 60%); }
+.linked { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 14px; color: var(--text); border-color: color-mix(in oklab, var(--accent) 35%, var(--line)); background: linear-gradient(120deg, var(--accent-soft), var(--surface) 60%); transition: transform .18s var(--ease); }
+.linked:active { transform: scale(.985); transition-duration: .06s; }
 .linked > span { flex: 1; display: flex; flex-direction: column; }
 .url { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; km-icon { color: var(--text-3); } }
 .url .grow { display: flex; flex-direction: column; }
 .url b { font-weight: 550; }
 .codes { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px; padding: 8px; }
 .code { display: flex; align-items: center; gap: 4px; border-radius: 9px; padding: 2px 2px 2px 10px; }
-.code:hover { background: var(--surface-2); }
+.code { transition: background .12s; }
+@media (hover: hover) { .code:hover { background: var(--surface-2); } }
+.code:active { background: var(--surface-2); }
 .code > button.mono { flex: 1; text-align: left; background: none; border: 0; color: var(--text); font: 14px var(--font-mono); cursor: pointer; padding: 6px 0; }
 .code.used > button.mono { text-decoration: line-through; color: var(--text-3); cursor: default; }
 .deps { display: flex; flex-wrap: wrap; gap: 8px; }
 .dep { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; color: var(--text); font-size: 14px; border-radius: 12px; }
-.card-hero { display: flex; gap: 24px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; km-card-visual { cursor: pointer; flex: 1 1 300px; } }
+.card-hero { display: flex; gap: 24px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; km-card-visual { cursor: pointer; flex: 1 1 300px; transition: transform .2s var(--ease); &:active { transform: scale(.98); transition-duration: .08s; } } }
 .card-actions { display: flex; flex-direction: column; gap: 8px; }
 .dyn { display: flex; align-items: center; gap: 8px; color: var(--accent); font-size: 14px; }
 .alert { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--warn); margin-bottom: 14px; font-size: 14px; }
@@ -34,7 +38,8 @@ h3 { margin: 26px 0 10px; display: flex; align-items: center; gap: 8px; color: v
 .qr { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .notes { padding: 16px 18px; white-space: pre-wrap; line-height: 1.6; color: var(--text); overflow-wrap: anywhere; }
 .files { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.file { display: flex; flex-direction: column; gap: 4px; padding: 8px; cursor: pointer; color: var(--text); text-align: left; font: 13px var(--font-ui); }
+.file { display: flex; flex-direction: column; gap: 4px; padding: 8px; cursor: pointer; color: var(--text); text-align: left; font: 13px var(--font-ui); transition: transform .18s var(--ease); }
+.file:active { transform: scale(.97); transition-duration: .06s; }
 .file img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; }
 .ficon { width: 100%; aspect-ratio: 4/3; border-radius: 8px; background: var(--surface-2); display: grid; place-items: center; color: var(--text-3); }
 .fname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 550; margin-top: 4px; }

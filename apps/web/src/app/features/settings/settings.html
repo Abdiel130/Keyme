@@ -27,10 +27,12 @@
         </select>
       </div>
       <div class="opt">
-        <div class="ot"><b><km-icon name="fingerprint" [size]="16" /> Windows Hello / passkey</b>
+        <div class="ot"><b><km-icon name="fingerprint" [size]="16" /> {{ method.title }}</b>
           <span class="faint small">
             @if (!helloSupported()) { Este navegador o equipo no ofrece un autenticador compatible (se necesita WebAuthn con PRF y HTTPS o localhost). }
             @else if (hello()) { Activo en este navegador desde {{ when(hello()!.createdAt) }}. Cada 14 días se pide la contraseña maestra. }
+            @else if (method.kind === 'fingerprint') { Desbloquea con tu huella. Si Android pregunta dónde guardar la llave de acceso, elige Google Password Manager. }
+            @else if (method.kind === 'passkey') { Desbloquea con una passkey de este dispositivo (huella, rostro o PIN). En Android guárdala en Google Password Manager. }
             @else { Desbloquea con huella, rostro o PIN. La llave se guarda envuelta en este navegador; el servidor no participa. }
           </span>
         </div>

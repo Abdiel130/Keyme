@@ -93,6 +93,28 @@ body {
   overflow: hidden;
 }
 
+/* Sensación de app nativa: sin el destello azul de Android al tocar, sin
+   menú contextual ni selección de texto en controles, y sin el retraso de
+   doble toque. Los :hover van dentro de @media (hover: hover) para que no se
+   queden "pegados" en pantallas táctiles. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+a,
+button,
+label,
+select,
+summary,
+[role='button'] {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+button,
+[role='button'] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 ::selection {
   background: var(--accent);
   color: var(--accent-ink);
@@ -191,16 +213,20 @@ h3 {
   font: 550 14px/1 var(--font-ui);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s, transform 0.08s, color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, filter 0.15s, transform 0.18s var(--ease);
   user-select: none;
   text-decoration: none;
 
-  &:hover {
-    --b-bg: var(--surface-3);
-    --b-line: var(--line-strong);
+  @media (hover: hover) {
+    &:hover {
+      --b-bg: var(--surface-3);
+      --b-line: var(--line-strong);
+    }
   }
   &:active {
-    transform: translateY(1px);
+    --b-bg: var(--surface-3);
+    transform: scale(0.97);
+    transition-duration: 0.06s;
   }
   &:disabled {
     opacity: 0.45;
@@ -211,24 +237,42 @@ h3 {
     --b-fg: var(--accent-ink);
     --b-line: transparent;
     box-shadow: 0 6px 18px -8px var(--accent);
-    &:hover {
-      --b-bg: color-mix(in oklab, var(--accent) 88%, white);
+    @media (hover: hover) {
+      &:hover {
+        --b-bg: color-mix(in oklab, var(--accent) 88%, white);
+      }
+    }
+    &:active {
+      --b-bg: var(--accent);
+      filter: brightness(0.92);
+      box-shadow: 0 3px 10px -6px var(--accent);
     }
   }
   &.ghost {
     --b-bg: transparent;
     --b-line: transparent;
     color: var(--text-2);
-    &:hover {
+    @media (hover: hover) {
+      &:hover {
+        --b-bg: var(--surface-2);
+        color: var(--text);
+      }
+    }
+    &:active {
       --b-bg: var(--surface-2);
       color: var(--text);
     }
   }
   &.danger {
     --b-fg: var(--danger);
-    &:hover {
+    @media (hover: hover) {
+      &:hover {
+        --b-bg: var(--danger-soft);
+        --b-line: var(--danger);
+      }
+    }
+    &:active {
       --b-bg: var(--danger-soft);
-      --b-line: var(--danger);
     }
   }
   &.lg {
@@ -246,6 +290,9 @@ h3 {
   &.icon {
     width: 38px;
     padding: 0;
+    &:active {
+      transform: scale(0.9);
+    }
     &.sm {
       width: 30px;
     }
@@ -303,8 +350,10 @@ h3 {
   &::placeholder {
     color: var(--text-3);
   }
-  &:hover {
-    border-color: var(--line-strong);
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--line-strong);
+    }
   }
   &:focus {
     outline: none;
@@ -377,7 +426,14 @@ h3 {
       height: 15px;
       border-radius: 50%;
       background: var(--text-2);
-      transition: transform 0.2s var(--ease), background 0.2s;
+      transition: transform 0.2s var(--ease), background 0.2s, width 0.2s var(--ease);
+    }
+    // Al presionar, el botón del switch se estira como en Android/iOS.
+    &:active::after {
+      width: 19px;
+    }
+    &:checked:active::after {
+      transform: translateX(11px);
     }
     &:checked {
       background: var(--accent);
@@ -414,6 +470,11 @@ input[type='range'] {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    transition: background 0.15s, color 0.15s, transform 0.18s var(--ease);
+    &:active {
+      transform: scale(0.95);
+      transition-duration: 0.06s;
+    }
     &.on {
       background: var(--surface);
       color: var(--text);

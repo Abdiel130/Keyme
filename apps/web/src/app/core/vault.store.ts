@@ -171,7 +171,7 @@ export class VaultStore {
     this.authKey = authKey;
   }
 
-  /** Desbloqueo con Windows Hello: la salida PRF ya la obtuvo WebAuthn. */
+  /** Desbloqueo con huella / Windows Hello / passkey: la salida PRF ya la obtuvo WebAuthn. */
   async unlockWithPrf(prf: string, wrapped: string): Promise<void> {
     await this.crypto.unlockPrf(prf, wrapped);
     this.authKey = null;
@@ -501,7 +501,7 @@ export class VaultStore {
     }
   }
 
-  /** El token caducó y no hay Auth Key en memoria (se desbloqueó con Windows Hello). */
+  /** El token caducó y no hay Auth Key en memoria (se desbloqueó con huella / Windows Hello / passkey). */
   readonly needsPassword = signal(false);
 
   private async onRevoked(): Promise<void> {

@@ -10,7 +10,8 @@
 .title-input::placeholder { color: var(--text-3); }
 .fav { color: var(--accent) !important; }
 .spaces { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
-.space { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font: 500 13px var(--font-ui); cursor: pointer; }
+.space { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font: 500 13px var(--font-ui); cursor: pointer; transition: transform .18s var(--ease); }
+.space:active { transform: scale(.95); transition-duration: .06s; }
 .space km-icon { color: var(--c, var(--text-3)); }
 .space.on { border-color: var(--c, var(--accent)); background: color-mix(in oklab, var(--c, var(--accent)) 16%, var(--surface)); color: var(--text); }
 .sec { padding: 18px; display: flex; flex-direction: column; gap: 16px; margin-bottom: 14px; }

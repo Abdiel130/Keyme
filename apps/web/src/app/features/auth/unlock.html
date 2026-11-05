@@ -35,7 +35,7 @@
             } @else if (store.keyRotatedElsewhere()) {
               La llave del vault se rotó desde otro dispositivo. Escribe tu contraseña maestra para recibirla; tu copia local se reconstruye sola.
             } @else if (prf() && passwordDue()) {
-              Han pasado {{ days }} días: escribe tu contraseña maestra para no olvidarla. Después podrás seguir usando Windows Hello.
+              Han pasado {{ days }} días: escribe tu contraseña maestra para no olvidarla. Después podrás seguir usando {{ method.name }}.
             } @else {
               Escribe tu contraseña maestra para abrir tu vault.
             }
@@ -56,7 +56,7 @@
 
           @if (prf() && !passwordDue()) {
             <div class="or">o</div>
-            <button type="button" class="btn lg hello" (click)="hello()" [disabled]="busy()"><km-icon name="fingerprint" [size]="20" /> Desbloquear con Windows Hello</button>
+            <button type="button" class="btn lg hello" (click)="hello()" [disabled]="busy()"><km-icon name="fingerprint" [size]="20" /> Desbloquear con {{ method.name }}</button>
           }
 
           <p class="status" [class.off]="!store.online()">

@@ -11,7 +11,7 @@ import { strength } from '../../core/strength';
 import { APP_VERSION, AppUpdates } from '../../core/app-updates';
 import { Toasts } from '../../core/toasts';
 import { VaultStore, defaultDeviceName } from '../../core/vault.store';
-import { prfSupported, registerPrf } from '../../core/webauthn';
+import { isAndroid, prfSupported, registerPrf, unlockMethod } from '../../core/webauthn';
 import { Icon, SPACE_ICONS } from '../../ui/icon';
 import { InstallPrompt } from '../../core/install';
 import { InstallButton } from '../../ui/install-button';
@@ -45,7 +45,8 @@ export class SettingsPage implements OnInit {
   protected updates = inject(AppUpdates);
   protected installer = inject(InstallPrompt);
 
-  // Windows Hello
+  // Huella / Windows Hello / passkey
+  protected readonly method = unlockMethod();
   protected readonly helloSupported = signal(false);
   protected readonly hello = signal<PrfMeta | null>(null);
   protected readonly helloBusy = signal(false);
@@ -120,33 +121,43 @@ export class SettingsPage implements OnInit {
     this.toasts.show(ready ? 'Hay una versión nueva lista' : navigator.onLine ? 'Ya tienes la última versión' : 'Sin conexión con el servidor', ready || navigator.onLine ? 'ok' : 'error');
   }
 
-  // ----- Windows Hello ---------------------------------------------------
+  // ----- Huella / Windows Hello / passkey --------------------------------
+
+  private methodToast(on: boolean): string {
+    const m = this.method;
+    return `${m.title} ${on ? 'activad' : 'desactivad'}${m.feminine ? 'a' : 'o'}`;
+  }
 
   protected async enableHello(): Promise<void> {
     this.helloBusy.set(true);
     try {
       const reg = await registerPrf();
       if (!reg) {
-        this.toasts.show('Este autenticador no soporta la extensión PRF', 'error');
+        // En Android el proveedor lo elige el usuario; Samsung Pass y otros no implementan PRF.
+        this.toasts.show(
+          isAndroid()
+            ? 'Ese proveedor no soporta PRF. Vuelve a intentarlo y guarda la llave en Google Password Manager.'
+            : 'Este autenticador no soporta la extensión PRF',
+          'error',
+        );
         return;
       }
       const { wrapped } = await this.cryptoClient.wrapPrf(reg.prf);
       const meta: PrfMeta = { credentialId: reg.credentialId, salt: reg.salt, wrapped, rpId: location.hostname, createdAt: new Date().toISOString() };
       await db.setMeta('prf', meta);
       this.hello.set(meta);
-      this.toasts.show('Windows Hello activado');
+      this.toasts.show(this.methodToast(true));
     } catch (e) {
-      if ((e as Error).name !== 'NotAllowedError') this.toasts.show('No se pudo activar Windows Hello', 'error');
+      if ((e as Error).name !== 'NotAllowedError') this.toasts.show(`No se pudo activar: ${(e as Error).message || (e as Error).name}`, 'error');
     } finally {
       this.helloBusy.set(false);
     }
   }
 
-
   protected async disableHello(): Promise<void> {
     await db.delMeta('prf');
     this.hello.set(null);
-    this.toasts.show('Windows Hello desactivado en este navegador');
+    this.toasts.show(`${this.methodToast(false)} en este navegador`);
   }
 
   // ----- Contraseña y llaves --------------------------------------------

@@ -1,5 +1,5 @@
 .page { max-width: 860px; }
-.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: -8px 0 28px; a { font-size: 13px; color: var(--text-2); padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line); } a:hover { color: var(--text); border-color: var(--line-strong); } }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: -8px 0 28px; a { font-size: 13px; color: var(--text-2); padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line); transition: color .12s, border-color .12s, background .12s; } a:active { color: var(--text); background: var(--surface-2); } @media (hover: hover) { a:hover { color: var(--text); border-color: var(--line-strong); } } }
 .sec { margin-bottom: 40px; scroll-margin-top: 20px; h2 { margin-bottom: 12px; } }
 .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .group { padding: 6px 4px; margin-top: 12px; display: flex; flex-direction: column; }
@@ -15,7 +15,8 @@
 .up { transform: rotate(180deg); }
 .space-edit { flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; .input { height: 38px; max-width: 280px; } }
 .swatches, .icons { display: flex; flex-wrap: wrap; gap: 6px; }
-.swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform .18s var(--ease); }
+.swatch:active { transform: scale(.88); transition-duration: .06s; }
 .swatch.on { border-color: var(--text); }
 .confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 14px 14px 52px; }
 .rule-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 14px; border-top: 1px solid var(--line); .input { height: 36px; } .input.mono { flex: 1; min-width: 180px; } .num { width: 90px; } }

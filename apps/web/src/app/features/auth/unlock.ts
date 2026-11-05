@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiError } from '../../core/api';
 import { CryptoError } from '../../core/crypto.client';
 import { VaultStore } from '../../core/vault.store';
-import { PASSWORD_EVERY_DAYS, getPrf, prfStatus } from '../../core/webauthn';
+import { PASSWORD_EVERY_DAYS, getPrf, prfStatus, unlockMethod } from '../../core/webauthn';
 import type { PrfMeta } from '../../core/db';
 import { Icon } from '../../ui/icon';
 import { InstallButton } from '../../ui/install-button';
@@ -31,13 +31,14 @@ export class Unlock implements OnInit {
   protected readonly hasLocal = signal(true);
   protected readonly days = PASSWORD_EVERY_DAYS;
   protected readonly confirmForget = signal(false);
+  protected readonly method = unlockMethod();
 
   async ngOnInit(): Promise<void> {
     this.hasLocal.set(await this.store.hasLocalVault());
     const s = await prfStatus();
     this.prf.set(s.meta);
     this.passwordDue.set(s.passwordDue);
-    // Si hay Windows Hello y no toca contraseña, se ofrece de inmediato.
+    // Si hay desbloqueo rápido y no toca contraseña, se ofrece de inmediato.
     if (s.meta && !s.passwordDue && this.store.state() === 'locked') void this.hello();
   }
 
@@ -69,7 +70,7 @@ export class Unlock implements OnInit {
       this.opened.set(true);
     } catch (e) {
       const name = (e as Error).name;
-      if (name !== 'NotAllowedError' && name !== 'AbortError') this.error.set('Windows Hello no pudo desbloquear. Usa tu contraseña maestra.');
+      if (name !== 'NotAllowedError' && name !== 'AbortError') this.error.set(`No se pudo desbloquear con ${this.method.name}. Usa tu contraseña maestra.`);
       setTimeout(() => this.input()?.nativeElement.focus());
     } finally {
       this.busy.set(false);

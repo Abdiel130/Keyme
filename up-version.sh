@@ -5,6 +5,7 @@
 # Uso:
 #   ./up-version.sh 1.3.0          # Pasando la versión por parámetro
 #   ./up-version.sh                # Sugiere la siguiente y pide confirmarla (Y/n)
+#   ./up-version.sh --rollback     # Deshace la última subida (pide confirmar)
 #
 # Sugerencia (según lo que hay en [Unreleased]):
 #   - Menciona "breaking"/"incompatible"          → major (2.0.0)
@@ -31,11 +32,20 @@
 #   - [Unreleased] debe tener contenido: sin notas no hay nada que liberar.
 #   - En CHANGELOG, el contenido de [Unreleased] pasa tal cual a
 #     "## [X.Y.Z] - AAAA-MM-DD" y [Unreleased] queda vacío para lo siguiente.
+#
+# Rollback (--rollback), por si te equivocaste de versión:
+#   - Devuelve todos los archivos a la versión anterior del CHANGELOG y pasa
+#     las notas de la última sección de vuelta a [Unreleased].
+#   - Se niega si existe el tag vX.Y.Z (ya se publicó), si la versión actual
+#     no es la última sección del CHANGELOG o si [Unreleased] tiene notas
+#     nuevas (no las mezcla con las de la versión deshecha).
+#   - También es todo o nada. Después vuelves a subir con la versión correcta.
 # =============================================================================
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NEW_VERSION="${1:-}"
+MODE="bump"
 
 # Sugiere la siguiente versión a partir de la actual (apps/web/package.json) y
 # de lo que hay en [Unreleased]. Imprime "versión|motivo", o nada si no puede.
@@ -77,7 +87,23 @@ print(f"{version}|{current} → {version}: {reason}")
 EOF
 }
 
-if [[ -z "$NEW_VERSION" ]]; then
+if [[ "$NEW_VERSION" == "--rollback" ]]; then
+  MODE="rollback"
+  NEW_VERSION=""
+  CURRENT="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' "$ROOT_DIR/apps/web/package.json")"
+  if git -C "$ROOT_DIR" rev-parse -q --verify "refs/tags/v$CURRENT" > /dev/null; then
+    echo "❌ Error: el tag v$CURRENT ya existe; esa versión se publicó y no se deshace con este script." >&2
+    exit 1
+  fi
+  echo -n "↩️  ¿Deshacer la versión $CURRENT y devolver sus notas a [Unreleased]? [y/N]: "
+  read -r ANSWER
+  if [[ ! "$ANSWER" =~ ^[YySs]$ ]]; then
+    echo "Cancelado: no se modificó ningún archivo."
+    exit 0
+  fi
+fi
+
+if [[ "$MODE" == "bump" && -z "$NEW_VERSION" ]]; then
   SUGGESTION="$(suggest_version)"
   if [[ -n "$SUGGESTION" ]]; then
     echo "💡 Sugerencia: ${SUGGESTION#*|}"
@@ -89,7 +115,7 @@ if [[ -z "$NEW_VERSION" ]]; then
   fi
 fi
 
-if [[ -z "$NEW_VERSION" ]]; then
+if [[ "$MODE" == "bump" && -z "$NEW_VERSION" ]]; then
   echo -n "Ingresa la nueva versión (ej. 1.3.0): "
   read -r NEW_VERSION
 fi
@@ -100,14 +126,18 @@ NEW_VERSION="${NEW_VERSION#V}"
 NEW_VERSION="$(echo -e "${NEW_VERSION}" | tr -d '[:space:]')"
 
 # Validar formato SemVer (ej. 1.3.0 o 1.3.0-rc.1)
-if [[ ! "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+if [[ "$MODE" == "bump" && ! "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
   echo "❌ Error: La versión '$NEW_VERSION' no cumple con el formato SemVer (ej. 1.3.0 o 1.3.0-rc.1)." >&2
   exit 1
 fi
 
-echo "🚀 Actualizando Keyme a la versión $NEW_VERSION..."
+if [[ "$MODE" == "bump" ]]; then
+  echo "🚀 Actualizando Keyme a la versión $NEW_VERSION..."
+else
+  echo "↩️  Deshaciendo la versión $CURRENT..."
+fi
 
-python3 - "$ROOT_DIR" "$NEW_VERSION" << 'EOF'
+python3 - "$ROOT_DIR" "$MODE" "$NEW_VERSION" << 'EOF'
 import json
 import re
 import sys
@@ -115,7 +145,8 @@ from datetime import date
 from pathlib import Path
 
 root = Path(sys.argv[1]).resolve()
-new_version = sys.argv[2]
+mode = sys.argv[2]           # "bump" o "rollback"
+new_version = sys.argv[3]    # vacío en rollback: se calcula del CHANGELOG
 today = date.today().isoformat()
 
 pending: dict[Path, str] = {}   # archivo -> contenido nuevo
@@ -152,7 +183,27 @@ def package_version(name: str) -> str:
 web_package = root / "apps" / "web" / "package.json"
 current = json.loads(web_package.read_text(encoding="utf-8"))["version"]
 
-if new_version == current:
+changelog = root / "CHANGELOG.md"
+content = changelog.read_text(encoding="utf-8")
+# Desde "## [Unreleased]" hasta el siguiente "## [" (o el final).
+unreleased = re.search(r"^##\s*\[Unreleased\][ \t]*\n(.*?)(?=^##\s*\[|\Z)", content, re.MULTILINE | re.DOTALL)
+
+if mode == "rollback":
+    # La última versión (justo después de [Unreleased]) y la anterior, a la que se vuelve.
+    sections = list(re.finditer(r"^##\s*\[(\d[^\]]*)\][^\n]*\n", content, re.MULTILINE))
+    if not unreleased:
+        problems.append("CHANGELOG.md no tiene sección ## [Unreleased]")
+    elif unreleased.group(1).strip():
+        problems.append("[Unreleased] tiene notas nuevas: muévelas o bórralas antes de deshacer")
+    elif len(sections) < 2:
+        problems.append("CHANGELOG.md no tiene una versión anterior a la cual volver")
+    elif sections[0].group(1) != current:
+        problems.append(f"La última sección del CHANGELOG es [{sections[0].group(1)}], no la actual ({current})")
+    else:
+        new_version = sections[1].group(1)
+    if problems:
+        new_version = current  # Solo para que los pasos 1-4 no fallen; nada se escribe.
+elif new_version == current:
     problems.append(f"La versión {new_version} ya es la actual")
 elif core(new_version) < core(current):
     problems.append(f"La versión {new_version} es menor que la actual ({current})")
@@ -182,14 +233,14 @@ replace(
 replace(root / "README.md", r"(- Versión actual:\s*\*\*)[^*]+(\*\*)", rf"\g<1>{new_version}\g<2>", expected=1)
 
 # ── 5. CHANGELOG.md ─────────────────────────────────────────────────────────
-changelog = root / "CHANGELOG.md"
-content = changelog.read_text(encoding="utf-8")
-
-if re.search(rf"^##\s*\[{re.escape(new_version)}\]", content, re.MULTILINE):
+if mode == "rollback":
+    if not problems:
+        # Las notas de la versión deshecha vuelven a [Unreleased], sin su encabezado.
+        body = content[sections[0].end(): sections[1].start()].strip("\n")
+        pending[changelog] = content[: unreleased.start()] + f"## [Unreleased]\n\n{body}\n\n" + content[sections[1].start():]
+elif re.search(rf"^##\s*\[{re.escape(new_version)}\]", content, re.MULTILINE):
     problems.append(f"CHANGELOG.md ya tiene una sección [{new_version}]")
 else:
-    # Desde "## [Unreleased]" hasta el siguiente "## [" (o el final).
-    unreleased = re.search(r"^##\s*\[Unreleased\][ \t]*\n(.*?)(?=^##\s*\[|\Z)", content, re.MULTILINE | re.DOTALL)
     if not unreleased:
         problems.append("CHANGELOG.md no tiene sección ## [Unreleased]")
     elif not unreleased.group(1).strip():
@@ -216,5 +267,9 @@ print(f"\n  {current} → {new_version}")
 EOF
 
 echo ""
-echo "✨ Versión $NEW_VERSION aplicada correctamente en todos los archivos."
+if [[ "$MODE" == "bump" ]]; then
+  echo "✨ Versión $NEW_VERSION aplicada correctamente en todos los archivos."
+else
+  echo "✨ Versión $CURRENT deshecha: sus notas volvieron a [Unreleased]."
+fi
 echo "💡 Recuerda revisar los cambios con 'git diff' antes de hacer commit."

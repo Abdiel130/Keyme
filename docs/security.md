@@ -34,7 +34,7 @@ Cada adjunto tiene su propia llave aleatoria. Se cifra con `crypto_secretstream_
 ## Sesión
 
 - La Vault Key vive solo dentro de un Web Worker. Al bloquear se borra con `memzero` y el worker se termina.
-- **Windows Hello:** la extensión PRF de WebAuthn devuelve un secreto estable de 32 B, que solo sale tras la verificación biométrica o con PIN. Ese secreto, pasado por KDF (`"kmprf001"`), envuelve la Vault Key en IndexedDB. El servidor no participa. Cada 14 días se exige la contraseña maestra.
+- **Huella / Windows Hello / passkey:** la extensión PRF de WebAuthn devuelve un secreto estable de 32 B, que solo sale tras la verificación biométrica o con PIN. Ese secreto, pasado por KDF (`"kmprf001"`), envuelve la Vault Key en IndexedDB. El servidor no participa. Cada 14 días se exige la contraseña maestra. La credencial se crea descubrible (`residentKey: required`) porque en Android las no descubribles caen en el módulo FIDO2 antiguo, que no implementa PRF.
 - Los tokens de Sanctum pertenecen a un dispositivo y duran 30 días. Revocar un dispositivo borra sus tokens y, la próxima vez que ese dispositivo se conecta, borra su copia local.
 - El inicio de sesión tiene un límite de 5 intentos por minuto por IP y de 15 por minuto en total.
 

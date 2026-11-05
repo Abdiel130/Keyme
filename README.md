@@ -49,7 +49,7 @@ Cada dispositivo nuevo pide solo la contraseña maestra. El token de instalació
 
 ### 3. Configurar
 
-- **Windows Hello:** *Ajustes → Seguridad → Windows Hello*. Desbloquea con huella, rostro o PIN. Cada 14 días Keyme vuelve a pedir la contraseña maestra para que no la olvides.
+- **Huella / Windows Hello / passkey:** *Ajustes → Seguridad*. Desbloquea con huella, rostro o PIN. En Android, con la app instalada, aparece como *Huella digital*; cuando Android pregunte dónde guardar la llave de acceso, elige **Google Password Manager** (Samsung Pass y otros proveedores no soportan PRF). Cada 14 días Keyme vuelve a pedir la contraseña maestra para que no la olvides.
 - **Importar desde SafeInCloud:** en SafeInCloud exporta a XML, luego en Keyme *Ajustes → Importar y exportar → SafeInCloud*. Al terminar, **borra el XML**: está sin cifrar.
 - **Bloqueo automático:** *Ajustes → Seguridad* (5 minutos por defecto).
 
@@ -167,11 +167,14 @@ Para actualizar la versión del proyecto de forma consistente en todos los archi
 ./up-version.sh 1.2.0          # pasando la versión como argumento
 # o bien
 ./up-version.sh                # sugiere la siguiente según [Unreleased] y pide confirmarla
+./up-version.sh --rollback     # deshace la última subida si te equivocaste de versión
 ```
 
 > **Nota obligatoria:** Cada cambio final debe utilizar este script para asegurar que la versión esté sincronizada en todo el proyecto.
 
 El script es **todo o nada**: si algo no cuadra no toca ningún archivo. Se niega si la versión no es mayor que la actual, si ya existe en el changelog o si `[Unreleased]` está vacío. Lo escrito en `[Unreleased]` pasa tal cual a `## [X.Y.Z] - AAAA-MM-DD` y `[Unreleased]` queda vacío para lo siguiente.
+
+Con `--rollback` vuelve todo a la versión anterior del changelog y devuelve las notas a `[Unreleased]`, para subir de nuevo con la versión correcta. Se niega si ya existe el tag `vX.Y.Z` (la versión ya se publicó) o si `[Unreleased]` tiene notas nuevas.
 
 ## Hoja de ruta
 
@@ -186,4 +189,4 @@ Ver [SECURITY.md](SECURITY.md), [docs/security.md](docs/security.md) y [docs/for
 ## Licencia y versión
 
 - Licencia: [MIT](LICENSE).
-- Versión actual: **1.1.0** (Ver [CHANGELOG.md](CHANGELOG.md) para más detalles).
+- Versión actual: **1.1.1** (Ver [CHANGELOG.md](CHANGELOG.md) para más detalles).

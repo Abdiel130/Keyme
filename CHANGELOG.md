@@ -7,6 +7,69 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-05
+
+Keyme estrena cara. Cada cuenta lleva el logo real de su servicio, lo que
+más usas se copia con un toque desde la lista y la app se mueve como una app
+nativa en el teléfono: las pantallas se deslizan, las tarjetas se voltean y
+todo responde al tacto. Además entiende que una persona tiene varias cuentas
+del mismo servicio y que a veces guardas las de alguien más: tus cuentas de
+Google, la de la escuela y la de tu abuelita aparecen juntas en un solo
+grupo, y las tarjetas guardan junto a ellas el acceso a la app del banco.
+
+### Added
+- **Logos de tus servicios**: Google, Netflix, Spotify, GitHub, Nu y unos 200
+  más se reconocen por el sitio o el nombre y muestran su logo y su color.
+  Vienen dentro de la app: nadie se entera de qué sitios tienes guardados.
+- **Copia rápida en la lista**: cada fila tiene un botón para copiar la
+  contraseña (o el número de la tarjeta) sin abrir la ficha. En el teléfono
+  deslizas la fila a la derecha para copiar la contraseña y a la izquierda
+  para el usuario. Arriba de la lista están tus favoritos a un toque.
+- **Ficha nueva**: el logo grande con el color de la marca y botones de un
+  toque para lo que más se hace con cada elemento: copiar la contraseña, el
+  usuario o el código 2FA, o abrir el sitio. Los datos secretos van ocultos
+  y se copian con solo tocarlos.
+- **Tarjeta de verdad**: la tarjeta bancaria se dibuja con el logo y el color
+  de su banco, se voltea para ver el CVV y el NIP, y copias el número, el
+  vencimiento o el CVV tocándolos. Los documentos se ven como una
+  identificación y las notas como una hoja.
+- **Crear una cuenta en dos toques**: al agregar un login eliges el servicio
+  de una cuadrícula de logos y Keyme llena el nombre, el sitio y el logo. Al
+  agregar una tarjeta eliges el banco y toma su color. Mientras escribes ves
+  cómo va a quedar.
+- **Cartera apilada**: tus tarjetas se apilan como en la cartera del
+  teléfono; tocas una y sube con sus botones para copiar.
+- **Agrupar por servicio**: en "Todo" las cuentas del mismo sitio o banco se
+  juntan en un grupo que se abre con un toque, por ejemplo "Google · 3
+  cuentas". Gmail y YouTube cuentan como Google, y Outlook y Hotmail como
+  Microsoft. Se apaga desde el menú de orden, y Keyme recuerda tu elección.
+- **Personas**: en Ajustes › Personas das de alta a quien le guardas cuentas,
+  como tu abuelita. Sus cuentas muestran "de Abuelita" en la lista, en la
+  búsqueda y en Salud, y un filtro las separa de las tuyas. Si quitas a
+  alguien, sus cuentas no se borran: pasan a ser tuyas.
+- **Banca en línea en la tarjeta**: la tarjeta tiene ahora las pestañas
+  "Tarjeta" y "Banca en línea". En la segunda capturas el usuario y la
+  contraseña de la app del banco, o eliges un login que ya tengas. En la
+  lista ves el banco con sus dos elementos, y en la Cartera copias el
+  usuario y la contraseña sin abrir la ficha.
+- **Otras cuentas del servicio**: la ficha de cada cuenta lista las demás
+  del mismo servicio. Con "Agregar otra cuenta" creas una nueva que ya trae
+  los sitios, las apps, el espacio y la persona; solo te falta escribir las
+  credenciales.
+
+### Changed
+- **Navegación más simple**: en la computadora la barra lateral es ahora una
+  columna de íconos y los espacios, tipos, etiquetas y personas se eligen con
+  chips arriba de la lista. En el teléfono hay una barra inferior con
+  Bóveda, Cartera, Nuevo, Salud y Ajustes.
+- **Letras más grandes y botones más cómodos** de tocar en toda la app, con
+  animaciones al abrir, copiar y cambiar de pantalla. Si tu sistema pide
+  reducir el movimiento, se desactivan.
+- **Lo avanzado al final**: en el editor los sitios extra, las apps de
+  Android, los campos personalizados, las etiquetas y los adjuntos quedan en
+  "Más opciones", y mover, duplicar o borrar un elemento está en el menú
+  "⋯" de la ficha.
+
 ## [1.1.1] - 2026-11-04
 
 El desbloqueo rápido ya funciona en Android. Con Keyme instalada en el

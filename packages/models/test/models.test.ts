@@ -50,4 +50,42 @@ describe('modelos', () => {
   it('QR wifi', () => {
     expect(m.wifiQrPayload({ ssid: 'Casa;1', password: 'p:w', security: 'WPA', hidden: false })).toBe(String.raw`WIFI:T:WPA;S:Casa\;1;P:p\:w;;`);
   });
+
+  it('multicuenta: agrupa por servicio', () => {
+    const login = (title: string, url: string, username = '') => {
+      const e = m.newEntry('login', null);
+      Object.assign(e, { title, username, urls: url ? [{ value: url, match: 'base' }] : [] });
+      return e;
+    };
+    const escuela = login('Google · Escuela', 'https://accounts.google.com', 'yo@escuela.edu');
+    const gmail = login('Gmail', 'mail.gmail.com', 'yo@gmail.com');
+    const abuela = login('Google (Abuelita)', '', 'abuela@gmail.com');
+    expect(m.serviceKey(escuela)).toBe('d:google.com');
+    expect(m.serviceKey(gmail)).toBe('d:google.com');
+    expect(m.serviceKey(abuela)).toBe('n:google');
+    expect(m.titlePrefix('Google (Abuelita)')).toBe('Google');
+    expect(m.serviceName([escuela, gmail])).toBe('Google');
+
+    const banca = login('BBVA · Banca en línea', 'https://www.bbva.mx', 'cliente1');
+    const card = m.newEntry('card', null);
+    Object.assign(card, { title: 'BBVA Azul', bank: 'BBVA', number: '4111111111111111' });
+    expect(m.serviceKey(card)).toBe('n:bbva');
+    card.loginId = banca.id;
+    const byId = (id: string) => (id === banca.id ? banca : undefined);
+    expect(m.serviceKey(card, byId)).toBe(m.serviceKey(banca));
+    expect(m.serviceName([card, banca])).toBe('BBVA');
+  });
+
+  it('multicuenta: etiqueta de cada cuenta', () => {
+    const e = m.newEntry('login', null);
+    e.title = 'Google · Escuela';
+    expect(m.accountLabel(e)).toBe('Escuela');
+    e.username = 'yo@escuela.edu';
+    expect(m.accountLabel(e)).toBe('yo@escuela.edu');
+    const c = m.newEntry('card', null);
+    Object.assign(c, { title: 'BBVA', number: '4111111111111111' });
+    expect(m.accountLabel(c)).toBe('Tarjeta · •••• 1111');
+    expect(m.normalizeEntry({ id: 'x', kind: 'login' } as never).ownerId).toBeNull();
+  });
 });
+

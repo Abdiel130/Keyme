@@ -2,7 +2,7 @@
   <div class="page-head"><div><p class="eyebrow">Keyme</p><h1>Ajustes</h1></div></div>
 
   <nav class="toc">
-    <a href="#security">Seguridad</a><a href="#spaces">Espacios</a><a href="#rules">Reglas por sitio</a>
+    <a href="#security">Seguridad</a><a href="#spaces">Espacios</a><a href="#people">Personas</a><a href="#rules">Reglas por sitio</a>
     <a href="#import">Importar y exportar</a><a href="#devices">Dispositivos</a><a href="#audit">Registro</a><a href="#appearance">Apariencia</a><a href="#app">App</a>
   </nav>
 
@@ -117,6 +117,42 @@
             <button class="btn sm ghost" (click)="deleting.set(null)">Cancelar</button>
           </div>
         }
+      }
+    </div>
+  </section>
+
+  <!-- Personas -->
+  <section id="people" class="sec">
+    <div class="sec-head"><h2>Personas</h2><button class="btn sm" (click)="addPerson()"><km-icon name="plus" [size]="14" /> Persona</button></div>
+    <p class="faint small">Gente cuyas cuentas guardas tú, como la de tu abuelita. Sus cuentas se marcan con su nombre y puedes verlas aparte.</p>
+    <div class="panel group">
+      @for (p of s().people; track p.id) {
+        <div class="space-row" [style.--c]="p.color">
+          <span class="sw"><km-icon name="users" [size]="16" /></span>
+          @if (editingPerson() === p.id) {
+            <div class="space-edit">
+              <input class="input" [ngModel]="p.name" (change)="updatePerson(p, { name: $any($event.target).value.trim() || p.name })" maxlength="40" autofocus />
+              <div class="swatches">
+                @for (c of colors; track c) { <button class="swatch" [style.background]="c" [class.on]="c === p.color" (click)="updatePerson(p, { color: c })" [attr.aria-label]="c"></button> }
+              </div>
+              <button class="btn sm" (click)="editingPerson.set(null)"><km-icon name="check" [size]="14" /> Listo</button>
+            </div>
+          } @else {
+            <b class="grow">{{ p.name }}</b>
+            <span class="faint small">{{ countOf(p.id) }}</span>
+            <button class="btn icon sm ghost" (click)="editingPerson.set(p.id)" title="Editar"><km-icon name="edit" [size]="14" /></button>
+            <button class="btn icon sm ghost" (click)="deletingPerson.set(p.id)" title="Eliminar"><km-icon name="trash" [size]="14" /></button>
+          }
+        </div>
+        @if (deletingPerson() === p.id) {
+          <div class="confirm">
+            <span class="small">Sus {{ countOf(p.id) }} elementos no se borran: pasan a ser tuyos.</span>
+            <button class="btn sm danger" (click)="deletePerson(p)">Eliminar persona</button>
+            <button class="btn sm ghost" (click)="deletingPerson.set(null)">Cancelar</button>
+          </div>
+        }
+      } @empty {
+        <p class="faint small pad">Nadie todavía. Todas tus cuentas son tuyas.</p>
       }
     </div>
   </section>

@@ -1,88 +1,143 @@
 @if (entry(); as e) {
-  <div class="page">
-    <div class="topbar">
-      <a class="btn icon ghost back" routerLink="/" aria-label="Volver"><km-icon name="back" /></a>
+  <div class="page" [style.--brand]="brandColor()" (scroll)="onScroll($event)">
+    <div class="halo" aria-hidden="true"></div>
+
+    <div class="topbar" [class.scrolled]="scrolled()">
+      <a class="btn icon ghost back" routerLink="/" aria-label="Volver"><km-icon name="back" [size]="22" /></a>
+      <span class="mini-title">{{ e.title || 'Sin título' }}</span>
       <span class="grow"></span>
-      <button class="btn icon ghost" (click)="toggleFav()" [class.fav]="e.favorite" [title]="e.favorite ? 'Quitar de favoritos' : 'Favorito'"><km-icon name="star" /></button>
-      <button class="btn icon ghost" (click)="duplicate()" title="Duplicar"><km-icon name="copy" /></button>
-      <a class="btn" [routerLink]="['/item', e.id, 'edit']"><km-icon name="edit" [size]="16" /> Editar</a>
+      <button class="btn icon ghost" (click)="toggleFav()" [class.fav]="e.favorite" [title]="e.favorite ? 'Quitar de favoritos' : 'Marcar como favorito'" [attr.aria-pressed]="e.favorite">
+        <km-icon name="star" [size]="20" />
+      </button>
+      <div class="more">
+        <button class="btn icon ghost" (click)="menu.set(!menu())" aria-label="Más acciones" [attr.aria-expanded]="menu()"><km-icon name="more" [size]="20" /></button>
+        @if (menu()) {
+          <div class="menu-scrim" (click)="menu.set(false)"></div>
+          <div class="menu" role="menu">
+            <button role="menuitem" (click)="duplicate()"><km-icon name="copy" [size]="18" /> Duplicar</button>
+            @if (store.spaces().length > 1) {
+              <p class="eyebrow">Mover a</p>
+              @for (s of store.spaces(); track s.id) {
+                @if (s.id !== e.spaceId) {
+                  <button role="menuitem" (click)="moveTo(s.id)"><span class="sw" [style.--c]="s.color"><km-icon [name]="s.icon" [size]="14" /></span> {{ s.name }}</button>
+                }
+              }
+            }
+            @if (ui.people().length) {
+              <p class="eyebrow">Es de</p>
+              @if (e.ownerId) { <button role="menuitem" (click)="setOwner(null)"><km-icon name="identity" [size]="18" /> Mía</button> }
+              @for (p of ui.people(); track p.id) {
+                @if (p.id !== e.ownerId) {
+                  <button role="menuitem" (click)="setOwner(p.id)"><span class="sw" [style.--c]="p.color"><km-icon name="users" [size]="14" /></span> {{ p.name }}</button>
+                }
+              }
+            }
+            <div class="divider"></div>
+            <button role="menuitem" class="danger" (click)="menu.set(false); confirmDelete.set(true)"><km-icon name="trash" [size]="18" /> Eliminar</button>
+          </div>
+        }
+      </div>
+      <a class="btn edit" [routerLink]="['/item', e.id, 'edit']" aria-label="Editar"><km-icon name="edit" [size]="18" /> <span>Editar</span></a>
     </div>
 
-    <header class="head">
+    <header class="hero">
       @if (e.kind !== 'card') {
-        <km-avatar [entry]="e" [size]="64" [ring]="space()?.color ?? null" />
+        <km-avatar class="hero-av" [entry]="e" [size]="88" />
       }
       <div class="htxt">
         <h1>{{ e.title || 'Sin título' }}</h1>
         <div class="meta">
           @if (space(); as s) {
-            <span class="chip sp" [style.--c]="s.color"><km-icon [name]="s.icon" [size]="12" /> {{ s.name }}</span>
+            <button class="chip sp" [style.--c]="s.color" (click)="filterBy({ type: 'space', id: s.id })"><km-icon [name]="s.icon" [size]="13" /> {{ s.name }}</button>
           }
-          <span class="chip"><km-icon [name]="e.kind" [size]="12" /> {{ e.kind === 'document' ? docLabel[$any(e).docType] : kindLabel[e.kind] }}</span>
+          @if (owner(); as o) {
+            <button class="chip sp" [style.--c]="o.color" (click)="filterBy({ type: 'person', id: o.id })"><km-icon name="users" [size]="13" /> de {{ o.name }}</button>
+          }
+          <span class="chip"><km-icon [name]="e.kind" [size]="13" /> {{ e.kind === 'document' ? docLabel[$any(e).docType] : kindLabel[e.kind] }}</span>
           @for (t of e.tags; track t) {
-            <button class="chip tagc" (click)="ui.filter.set({ type: 'tag', tag: t })">#{{ t }}</button>
+            <button class="chip tagc" (click)="filterBy({ type: 'tag', tag: t })">#{{ t }}</button>
           }
         </div>
       </div>
     </header>
 
+    @if (actions().length) {
+      <div class="quick stagger">
+        @for (a of actions(); track a.id; let i = $index) {
+          <button class="qa" [class.primary]="i === 0" [class.done]="flashed() === a.id" [style.--i]="i" (click)="run(a)">
+            <span class="qi"><km-icon [name]="flashed() === a.id ? 'check' : a.icon" [size]="22" /></span>
+            <span class="ql">{{ flashed() === a.id ? 'Listo' : a.label }}</span>
+          </button>
+        }
+      </div>
+    }
+
     @switch (e.kind) {
       @case ('login') {
         @if (provider(); as p) {
-          <a class="linked panel" [routerLink]="['/item', p.id]">
-            <km-avatar [entry]="p" [size]="34" [ring]="ui.spaceById().get(p.spaceId ?? '')?.color ?? null" />
-            <span><span class="faint small">Inicia sesión con</span><b>{{ p.title }}</b><span class="faint small">{{ p.username }}</span></span>
+          <a class="linked" [routerLink]="['/item', p.id]">
+            <km-avatar [entry]="p" [size]="44" />
+            <span><span class="faint small">Inicias sesión con</span><b>{{ p.title }}</b><span class="faint small">{{ p.username }}</span></span>
             <km-icon name="chevron" />
           </a>
         }
         @if (e.username || e.password || e.totp || !provider()) {
-        <div class="card-block panel">
-          @if (e.username) { <km-secret-row label="Usuario" [value]="e.username" (copied)="used()" /> }
-          @if (e.password) {
-            <km-secret-row label="Contraseña" [value]="e.password" [secret]="true" (copied)="used()" />
-            <div class="meter"><km-strength [value]="e.password" [inputs]="[e.username, e.title]" [detail]="false" /></div>
-          }
-          @if (e.totp) { <div class="pad"><km-totp [secret]="e.totp" /></div> }
-          @if (!e.username && !e.password && !e.totp && !provider()) {
-            <p class="faint pad">Sin credenciales. <a [routerLink]="['/item', e.id, 'edit']">Agregar</a></p>
-          }
-        </div>
+          <section class="pass">
+            <div class="pass-head">
+              <span class="eyebrow">Credenciales</span>
+              @if (e.password) { <km-strength class="meter" [value]="e.password" [inputs]="[e.username, e.title]" [detail]="false" /> }
+            </div>
+            @if (e.username) { <km-secret-row icon="identity" label="Usuario" [value]="e.username" [big]="true" (copied)="used()" /> }
+            @if (e.password) { <km-secret-row icon="key" label="Contraseña" [value]="e.password" [secret]="true" [big]="true" (copied)="used()" /> }
+            @if (e.totp) { <div class="totp-wrap"><km-totp [secret]="e.totp" /></div> }
+            @if (!e.username && !e.password && !e.totp && !provider()) {
+              <p class="faint pad">Sin credenciales. <a [routerLink]="['/item', e.id, 'edit']">Agregar</a></p>
+            }
+          </section>
         }
 
         @if (e.urls.length || e.androidPackages.length) {
           <h3>Sitios y apps</h3>
-          <div class="card-block panel">
+          <div class="group">
             @for (u of e.urls; track $index) {
-              <div class="url">
-                <km-icon name="login" [size]="16" />
+              <button class="url" (click)="u.match !== 'regex' && openUrl(u.value)" [disabled]="u.match === 'regex'">
+                <span class="ui"><km-icon name="login" [size]="18" /></span>
                 <span class="grow"><b>{{ hostOf(u.value) || u.value }}</b><span class="faint tiny">{{ u.match === 'base' ? 'Dominio y subdominios' : u.match === 'host' ? 'Solo este host' : 'Expresión regular' }}</span></span>
-                @if (u.match !== 'regex') { <button class="btn sm ghost" (click)="openUrl(u.value)"><km-icon name="external" [size]="14" /> Abrir</button> }
-              </div>
+                @if (u.match !== 'regex') { <km-icon name="external" [size]="17" class="faint" /> }
+              </button>
             }
             @for (p of e.androidPackages; track p) {
-              <div class="url"><km-icon name="phone" [size]="16" /><span class="grow mono small">{{ p }}</span><span class="chip">Android</span></div>
+              <div class="url"><span class="ui"><km-icon name="phone" [size]="18" /></span><span class="grow mono small">{{ p }}</span><span class="chip">Android</span></div>
             }
           </div>
         }
 
         @if (e.recoveryCodes.length) {
           <h3>Códigos de recuperación <span class="faint small">{{ unusedCodes(e) }} sin usar</span></h3>
-          <div class="codes panel">
+          <div class="codes group">
             @for (c of e.recoveryCodes; track $index; let i = $index) {
               <div class="code" [class.used]="c.used">
                 <button class="mono" (click)="copy(c.code, 'Código copiado')" [disabled]="c.used">{{ c.code }}</button>
-                <button class="btn icon sm ghost" (click)="toggleCode(i)" [title]="c.used ? 'Marcar como no usado' : 'Marcar como usado'"><km-icon [name]="c.used ? 'x' : 'check'" [size]="14" /></button>
+                <button class="btn icon sm ghost" (click)="toggleCode(i)" [title]="c.used ? 'Marcar como no usado' : 'Marcar como usado'"><km-icon [name]="c.used ? 'x' : 'check'" [size]="15" /></button>
               </div>
             }
           </div>
         }
 
         @if (dependents().length) {
-          <h3>Servicios que inician sesión con esta cuenta</h3>
+          <h3>Inician sesión con esta cuenta</h3>
           <p class="faint small sub">Si esta cuenta se compromete, revisa también estos.</p>
           <div class="deps">
             @for (d of dependents(); track d.id) {
-              <a class="dep panel" [routerLink]="['/item', d.id]"><km-avatar [entry]="d" [size]="28" /> {{ d.title }}</a>
+              <a class="dep" [routerLink]="['/item', d.id]"><km-avatar [entry]="d" [size]="30" /> {{ d.title }}</a>
+            }
+          </div>
+        }
+        @if (cards().length) {
+          <h3>Tarjetas con esta banca en línea</h3>
+          <div class="deps">
+            @for (c of cards(); track c.id) {
+              <a class="dep" [routerLink]="['/item', c.id]"><km-avatar [entry]="c" [size]="30" /> {{ c.title }} <span class="faint small">{{ accountLabel(c) }}</span></a>
             }
           </div>
         }
@@ -90,27 +145,52 @@
 
       @case ('card') {
         @let c = asCard(e);
-        <div class="card-hero">
-          <km-card-visual [card]="c" [revealed]="revealCard()" (click)="revealCard.set(!revealCard())" />
-          <div class="card-actions">
-            <button class="btn" (click)="revealCard.set(!revealCard())"><km-icon [name]="revealCard() ? 'eye-off' : 'eye'" [size]="16" /> {{ revealCard() ? 'Ocultar' : 'Mostrar' }}</button>
-            @if (c.dynamicCvv && (c.bankAppPackage || c.bankAppUrl)) {
-              <button class="btn primary" (click)="openBank(c)"><km-icon name="bank" [size]="16" /> Abrir app del banco</button>
-            }
+        <div class="tabs-wrap">
+          <div class="seg card-tabs" role="tablist">
+            <button role="tab" [class.on]="cardTab() === 'card'" [attr.aria-selected]="cardTab() === 'card'" (click)="cardTab.set('card')"><km-icon name="card" [size]="16" /> Tarjeta</button>
+            <button role="tab" [class.on]="cardTab() === 'bank'" [attr.aria-selected]="cardTab() === 'bank'" (click)="cardTab.set('bank')"><km-icon name="bank" [size]="16" /> Banca en línea</button>
           </div>
         </div>
-        <div class="card-block panel">
-          @if (c.number) { <km-secret-row label="Número" [value]="c.number" [secret]="true" [format]="formatCard" (copied)="used()" /> }
-          @if (c.expiry) { <km-secret-row label="Vencimiento" [value]="c.expiry" [mono]="true" /> }
-          @if (c.dynamicCvv) {
-            <div class="dyn pad"><km-icon name="zap" [size]="16" /> CVV dinámico: lo genera la app de tu banco.</div>
-          } @else if (c.cvv) {
-            <km-secret-row label="CVV" [value]="c.cvv" [secret]="true" />
+        @if (cardTab() === 'bank') {
+          @if (bankLogin(); as l) {
+            <section class="pass rise">
+              <div class="pass-head">
+                <a class="bank-link" [routerLink]="['/item', l.id]"><km-avatar [entry]="l" [size]="30" /> <span>{{ l.title }}</span> <km-icon name="chevron" [size]="15" /></a>
+                @if (l.password) { <km-strength class="meter" [value]="l.password" [inputs]="[l.username, l.title]" [detail]="false" /> }
+              </div>
+              @if (l.username) { <km-secret-row icon="identity" label="Usuario" [value]="l.username" [big]="true" (copied)="bankUsed(l)" /> }
+              @if (l.password) { <km-secret-row icon="key" label="Contraseña" [value]="l.password" [secret]="true" [big]="true" (copied)="bankUsed(l)" /> }
+              @if (l.totp) { <div class="totp-wrap"><km-totp [secret]="l.totp" /></div> }
+              @if (!l.username && !l.password && !l.totp) { <p class="faint pad">El login vinculado no tiene credenciales todavía.</p> }
+            </section>
+            @if (c.bankAppUrl || c.bankAppPackage || l.androidPackages.length) {
+              <button class="btn primary lg block bank-open" (click)="openBankApp(c, l)"><km-icon name="bank" [size]="18" /> Abrir app del banco</button>
+            }
+          } @else {
+            <div class="empty-tab rise">
+              <span class="et-ic"><km-icon name="bank" [size]="28" /></span>
+              <p>Guarda el usuario y la contraseña de la app de {{ c.bank || 'tu banco' }} para tenerlos junto a la tarjeta.</p>
+              <a class="btn primary" [routerLink]="['/item', e.id, 'edit']" [queryParams]="{ tab: 'bank' }"><km-icon name="plus" [size]="17" /> Agregar banca en línea</a>
+            </div>
           }
-          @if (c.pin) { <km-secret-row label="NIP" [value]="c.pin" [secret]="true" /> }
-          @if (c.holder) { <km-secret-row label="Titular" [value]="c.holder" /> }
-          @if (c.bank) { <km-secret-row label="Banco" [value]="c.bank" /> }
+        } @else {
+        <div class="card-stage">
+          <km-card-visual [card]="c" [revealed]="revealCard()" [flipped]="flipCard()" [tilt]="true" (click)="flipCard.set(!flipCard())" (copied)="used()" />
+          <div class="card-tools">
+            <button class="seg-btn" [class.on]="revealCard()" (click)="revealCard.set(!revealCard())"><km-icon [name]="revealCard() ? 'eye-off' : 'eye'" [size]="17" /> {{ revealCard() ? 'Ocultar datos' : 'Mostrar datos' }}</button>
+            <button class="seg-btn" (click)="flipCard.set(!flipCard())"><km-icon name="sync" [size]="17" /> {{ flipCard() ? 'Ver frente' : 'Ver reverso' }}</button>
+          </div>
         </div>
+        @if (c.dynamicCvv) {
+          <div class="dyn"><km-icon name="zap" [size]="18" /> <span>CVV dinámico: lo genera la app de tu banco.</span>
+            @if (c.bankAppPackage || c.bankAppUrl) { <button class="btn sm tonal" (click)="openBank(c)"><km-icon name="bank" [size]="15" /> Abrir app</button> }
+          </div>
+        }
+        <div class="group">
+          @if (c.holder) { <km-secret-row icon="identity" label="Titular" [value]="c.holder" /> }
+          @if (c.bank) { <km-secret-row icon="bank" label="Banco" [value]="c.bank" /> }
+        </div>
+        }
       }
 
       @case ('document') {
@@ -118,66 +198,102 @@
         @if (d.expiresAt) {
           @let left = daysUntil(d.expiresAt);
           @if (left <= 30) {
-            <div class="alert" [class.bad]="left < 0"><km-icon name="clock" [size]="16" /> {{ left < 0 ? 'Venció el ' + date(d.expiresAt) : 'Vence en ' + left + ' días (' + date(d.expiresAt) + ')' }}</div>
+            <div class="alert" [class.bad]="left < 0"><km-icon name="clock" [size]="18" /> {{ left < 0 ? 'Venció el ' + date(d.expiresAt) : 'Vence en ' + left + ' días (' + date(d.expiresAt) + ')' }}</div>
           }
         }
-        <div class="card-block panel">
-          @if (d.number) { <km-secret-row [label]="'Número de ' + docLabel[d.docType]" [value]="d.number" [mono]="true" [secret]="true" (copied)="used()" /> }
-          @if (d.fullName) { <km-secret-row label="Nombre" [value]="d.fullName" /> }
-          @if (d.issuedAt) { <km-secret-row label="Expedición" [value]="date(d.issuedAt)" /> }
-          @if (d.expiresAt) { <km-secret-row label="Vigencia" [value]="date(d.expiresAt)" /> }
+        <div class="idcard" [attr.data-t]="d.docType">
+          <div class="id-top"><span class="id-flag"></span><b>{{ docLabel[d.docType] }}</b><span class="faint tiny">{{ e.title }}</span></div>
+          <div class="id-body">
+            <span class="id-photo"><km-icon name="identity" [size]="38" /></span>
+            <div class="id-data">
+              @if (d.fullName) { <span class="lbl">Nombre</span><span class="val">{{ d.fullName }}</span> }
+              <span class="lbl">Número</span>
+              <button class="val mono id-num" (click)="copy(d.number, 'Número copiado')">{{ showDoc() ? d.number : mask(d.number) }} <km-icon name="copy" [size]="14" /></button>
+              <div class="id-dates">
+                @if (d.issuedAt) { <span><span class="lbl">Expedición</span><span class="val">{{ date(d.issuedAt) }}</span></span> }
+                @if (d.expiresAt) { <span><span class="lbl">Vigencia</span><span class="val">{{ date(d.expiresAt) }}</span></span> }
+              </div>
+            </div>
+          </div>
+          <button class="id-eye" (click)="showDoc.set(!showDoc())" [attr.aria-label]="showDoc() ? 'Ocultar' : 'Mostrar'"><km-icon [name]="showDoc() ? 'eye-off' : 'eye'" [size]="18" /></button>
         </div>
       }
 
       @case ('identity') {
         @let i = $any(e);
-        <div class="card-block panel">
-          @if (i.fullName) { <km-secret-row label="Nombre completo" [value]="i.fullName" /> }
-          @if (i.email) { <km-secret-row label="Correo" [value]="i.email" /> }
-          @if (i.phone) { <km-secret-row label="Teléfono" [value]="i.phone" [mono]="true" /> }
-          @if (i.birthDate) { <km-secret-row label="Nacimiento" [value]="date(i.birthDate)" /> }
-          @if (i.street || i.city) { <km-secret-row label="Dirección" [value]="address(i)" /> }
+        <div class="group">
+          @if (i.fullName) { <km-secret-row icon="identity" label="Nombre completo" [value]="i.fullName" [big]="true" /> }
+          @if (i.email) { <km-secret-row icon="login" label="Correo" [value]="i.email" /> }
+          @if (i.phone) { <km-secret-row icon="phone" label="Teléfono" [value]="i.phone" [mono]="true" /> }
+          @if (i.birthDate) { <km-secret-row icon="clock" label="Nacimiento" [value]="date(i.birthDate)" /> }
+          @if (i.street || i.city) { <km-secret-row icon="home" label="Dirección" [value]="address(i)" /> }
         </div>
       }
 
       @case ('wifi') {
         @let w = $any(e);
         <div class="wifi">
-          <div class="card-block panel grow">
-            <km-secret-row label="Red (SSID)" [value]="w.ssid" />
-            @if (w.password) { <km-secret-row label="Contraseña" [value]="w.password" [secret]="true" (copied)="used()" /> }
-            <km-secret-row label="Seguridad" [value]="w.security === 'nopass' ? 'Abierta' : w.security" />
+          <div class="group grow">
+            <km-secret-row icon="wifi" label="Red (SSID)" [value]="w.ssid" [big]="true" />
+            @if (w.password) { <km-secret-row icon="key" label="Contraseña" [value]="w.password" [secret]="true" [big]="true" (copied)="used()" /> }
+            <km-secret-row icon="shield" label="Seguridad" [value]="w.security === 'nopass' ? 'Abierta' : w.security" />
           </div>
           @if (w.ssid) {
-            <div class="qr"><km-qr [value]="wifiQr(w)" alt="QR para conectarse" /><span class="faint small">Escanéalo con la cámara para conectarte</span></div>
+            <div class="qr" id="wifi-qr"><km-qr [value]="wifiQr(w)" alt="QR para conectarse" /><span class="faint small">Apunta la cámara de otro teléfono para conectarlo</span></div>
           }
         </div>
+      }
+
+      @case ('note') {
+        @if (e.notes) {
+          <article class="paper">{{ e.notes }}</article>
+        }
+      }
+    }
+
+    @if (siblings(); as sib) {
+      @if (sib.others.length || e.kind === 'login') {
+        <h3>
+          {{ sib.others.length ? 'Otras cuentas de ' + sib.name : 'Más cuentas de ' + sib.name }}
+          <a class="btn sm tonal push" [routerLink]="['/new', e.kind]" [queryParams]="{ like: e.id }"><km-icon name="plus" [size]="15" /> Agregar otra cuenta</a>
+        </h3>
+        @if (sib.others.length) {
+          <div class="group">
+            @for (o of sib.others; track o.id) {
+              <a class="sib" [routerLink]="['/item', o.id]">
+                <km-avatar [entry]="o" [size]="38" [ring]="ui.spaceById().get(o.spaceId ?? '')?.color ?? null" />
+                <span class="grow"><b>{{ accountLabel(o) }}</b><span class="faint tiny">{{ o.title }}@if (personName(o.ownerId); as n) { · de {{ n }}}</span></span>
+                <km-icon name="chevron" [size]="17" />
+              </a>
+            }
+          </div>
+        }
       }
     }
 
     @if (e.fields.length) {
       <h3>Campos</h3>
-      <div class="card-block panel">
+      <div class="group">
         @for (f of e.fields; track f.id) {
           <km-secret-row [label]="f.label || 'Campo'" [value]="f.value" [secret]="f.secret" />
         }
       </div>
     }
 
-    @if (e.notes) {
+    @if (e.notes && e.kind !== 'note') {
       <h3>Notas</h3>
-      <div class="notes panel">{{ e.notes }}</div>
+      <div class="notes">{{ e.notes }}</div>
     }
 
     @if (e.attachments.length) {
       <h3>Adjuntos</h3>
       <div class="files">
         @for (a of e.attachments; track a.id) {
-          <button class="file panel" (click)="download(a)">
+          <button class="file" (click)="download(a)">
             @if (previews()[a.id]; as src) {
               <img [src]="src" [alt]="a.name" />
             } @else {
-              <span class="ficon"><km-icon [name]="a.mime.startsWith('image/') ? 'image' : 'file'" [size]="22" /></span>
+              <span class="ficon"><km-icon [name]="a.mime.startsWith('image/') ? 'image' : 'file'" [size]="26" /></span>
             }
             <span class="fname">{{ a.name }}</span>
             <span class="faint tiny">{{ size(a.size) }}</span>
@@ -187,20 +303,19 @@
     }
 
     @if (e.history.length) {
-      <h3>
-        <button class="linkish" (click)="showHistory.set(!showHistory())">
-          <km-icon name="history" [size]="16" /> Historial ({{ e.history.length }}) <km-icon [name]="showHistory() ? 'down' : 'chevron'" [size]="14" />
-        </button>
-      </h3>
+      <button class="disclose" (click)="showHistory.set(!showHistory())" [attr.aria-expanded]="showHistory()">
+        <km-icon name="history" [size]="18" /> Historial <span class="faint">({{ e.history.length }})</span>
+        <km-icon name="down" [size]="16" class="chev" [class.open]="showHistory()" />
+      </button>
       @if (showHistory()) {
-        <div class="card-block panel">
+        <div class="group hist-list">
           @for (h of e.history; track $index) {
             <div class="hist">
               <span class="grow">
                 <b>{{ h.reason === 'conflict' ? 'Versión de otro dispositivo' : 'Contraseña anterior' }}</b>
                 <span class="faint tiny">{{ date(h.at) }} · {{ h.at.slice(11, 16) }}</span>
               </span>
-              @if (h.password) { <button class="btn sm ghost mono" (click)="copy(h.password!, 'Contraseña anterior copiada')">•••••• <km-icon name="copy" [size]="13" /></button> }
+              @if (h.password) { <button class="btn sm ghost mono" (click)="copy(h.password!, 'Contraseña anterior copiada')">•••••• <km-icon name="copy" [size]="14" /></button> }
               <button class="btn sm" (click)="restore(h)">Restaurar</button>
             </div>
           }
@@ -208,26 +323,24 @@
       }
     }
 
-    <div class="moves">
-      <span class="faint small">Mover a</span>
-      @for (s of store.spaces(); track s.id) {
-        @if (s.id !== e.spaceId) {
-          <button class="chip sp" [style.--c]="s.color" (click)="moveTo(s.id)">{{ s.name }}</button>
-        }
-      }
-    </div>
-
     <footer class="foot">
-      <span class="faint tiny">Creado {{ date(e.createdAt) }} · Modificado {{ date(e.modifiedAt) }}@if (e.rotatedAt) { · Contraseña de {{ date(e.rotatedAt) }}}@if (e.usage?.count) { · Usado {{ e.usage!.count }} veces}</span>
-      @if (!confirmDelete()) {
-        <button class="btn sm danger" (click)="confirmDelete.set(true)"><km-icon name="trash" [size]="14" /> Eliminar</button>
-      } @else {
-        <span class="confirm"><span class="small">¿Eliminar? Se borra en todos tus dispositivos.</span>
-          <button class="btn sm danger" (click)="remove()">Sí, eliminar</button>
-          <button class="btn sm ghost" (click)="confirmDelete.set(false)">No</button></span>
-      }
+      <span class="faint tiny">Creado {{ date(e.createdAt) }} · Modificado {{ date(e.modifiedAt) }}@if (e.rotatedAt) { · Contraseña de {{ date(e.rotatedAt) }}}@if (e.usage?.count) { · Usado {{ e.usage!.count }} {{ e.usage!.count === 1 ? 'vez' : 'veces' }}}</span>
     </footer>
   </div>
+
+  @if (confirmDelete()) {
+    <km-sheet #del role="alertdialog" label="Eliminar" width="min(440px, 100%)" (dismissed)="confirmDelete.set(false)">
+      <div class="confirm">
+        <span class="del-ic"><km-icon name="trash" [size]="26" /></span>
+        <h2>¿Eliminar “{{ e.title || 'Sin título' }}”?</h2>
+        <p class="muted">Se borra en todos tus dispositivos.</p>
+        <div class="confirm-acts">
+          <button class="btn lg" (click)="del.close()">Cancelar</button>
+          <button class="btn lg danger" (click)="remove()">Eliminar</button>
+        </div>
+      </div>
+    </km-sheet>
+  }
 } @else {
-  <div class="empty"><km-icon name="search" [size]="28" /><h2>No encontrado</h2><p>Este elemento no existe o fue eliminado.</p><a class="btn" routerLink="/">Volver</a></div>
+  <div class="empty"><km-icon name="search" [size]="30" /><h2>No encontrado</h2><p>Este elemento no existe o fue eliminado.</p><a class="btn" routerLink="/">Volver</a></div>
 }

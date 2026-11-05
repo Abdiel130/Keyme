@@ -1,10 +1,13 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
-  DOC_LABELS, KIND_LABELS, formatCard, hostOf, isEntry, wifiQrPayload,
+  DOC_LABELS, KIND_LABELS, accountLabel, digitsOnly, formatCard, hostOf, isEntry, serviceKey, serviceName, wifiQrPayload,
   type AttachmentRef, type CardEntry, type Entry, type HistoryEntry, type LoginEntry,
 } from '@keyme/models';
+import { Brands } from '../../core/brands';
 import { Clipboard } from '../../core/clipboard.service';
+import { parseTotp, totpNow } from '../../core/totp';
+import { type Filter } from '../../core/ui-state';
 import { Toasts } from '../../core/toasts';
 import { UiState } from '../../core/ui-state';
 import { VaultStore } from '../../core/vault.store';
@@ -13,13 +16,24 @@ import { CardVisual } from '../../ui/card-visual';
 import { Icon } from '../../ui/icon';
 import { QrCode } from '../../ui/qr-code';
 import { SecretRow } from '../../ui/secret-row';
+import { Sheet } from '../../ui/sheet';
 import { StrengthMeter } from '../../ui/strength-meter';
 import { TotpCode } from '../../ui/totp-code';
+
+interface QuickAction {
+  id: string;
+  icon: string;
+  label: string;
+  value: string;
+  toast?: string;
+  /** No es secreto: no se borra del portapapeles ni cuenta como uso. */
+  plain?: boolean;
+}
 
 @Component({
   selector: 'km-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Avatar, CardVisual, Icon, QrCode, SecretRow, StrengthMeter, TotpCode],
+  imports: [RouterLink, Avatar, CardVisual, Icon, QrCode, SecretRow, StrengthMeter, TotpCode, Sheet],
   templateUrl: './detail.html',
   styleUrl: './detail.scss',
 })
@@ -29,6 +43,7 @@ export class Detail {
   private router = inject(Router);
   private clipboard = inject(Clipboard);
   private toasts = inject(Toasts);
+  private brands = inject(Brands);
 
   readonly id = input.required<string>();
   protected readonly entry = computed(() => {
@@ -50,6 +65,92 @@ export class Detail {
     if (!e || e.kind !== 'login') return [];
     return this.store.entries().filter((x): x is LoginEntry => x.kind === 'login' && x.signInWith === e.id);
   });
+  protected readonly owner = computed(() => {
+    const e = this.entry();
+    return e?.ownerId ? this.ui.personById().get(e.ownerId) ?? null : null;
+  });
+  /** Banca en línea vinculada a la tarjeta. */
+  protected readonly bankLogin = computed(() => {
+    const e = this.entry();
+    const l = e?.kind === 'card' && e.loginId ? this.store.records().get(e.loginId) : undefined;
+    return l && isEntry(l) && l.kind === 'login' ? l : null;
+  });
+  /** Tarjetas que usan este login como banca en línea. */
+  protected readonly cards = computed(() => {
+    const e = this.entry();
+    if (e?.kind !== 'login') return [];
+    return this.store.entries().filter((x): x is CardEntry => x.kind === 'card' && x.loginId === e.id);
+  });
+  private readonly get = (id: string) => {
+    const r = this.store.records().get(id);
+    return r && isEntry(r) ? r : undefined;
+  };
+  /** Las otras cuentas del mismo servicio (Google ×3) y su nombre. */
+  protected readonly siblings = computed(() => {
+    const e = this.entry();
+    if (!e) return null;
+    const key = serviceKey(e, this.get);
+    const all = this.store.entries().filter((x) => serviceKey(x, this.get) === key);
+    const others = all.filter((x) => x.id !== e.id && x.id !== this.bankLogin()?.id && !this.cards().some((c) => c.id === x.id));
+    return { name: serviceName(all), others };
+  });
+  protected readonly accountLabel = accountLabel;
+  protected readonly cardTab = signal<'card' | 'bank'>('card');
+
+  /** Color de la marca para el halo de la cabecera. */
+  protected readonly brandColor = computed(() => {
+    const e = this.entry();
+    const b = e ? this.brands.forEntry(e) : null;
+    return b ? `#${b.hex}` : null;
+  });
+
+  /**
+   * Acciones de un toque según el tipo: lo que más se hace con cada elemento
+   * queda arriba, sin buscarlo entre los campos. La primera es la principal.
+   */
+  protected readonly actions = computed<QuickAction[]>(() => {
+    const e = this.entry();
+    if (!e) return [];
+    const out: QuickAction[] = [];
+    switch (e.kind) {
+      case 'login':
+        if (e.password) out.push({ id: 'pass', icon: 'key', label: 'Contraseña', value: e.password, toast: 'Contraseña copiada' });
+        if (e.username) out.push({ id: 'user', icon: 'identity', label: 'Usuario', value: e.username, toast: 'Usuario copiado', plain: true });
+        if (e.totp && parseTotp(e.totp)) out.push({ id: 'totp', icon: 'clock', label: 'Código 2FA', value: '', toast: 'Código copiado' });
+        if (e.urls.some((u) => u.match !== 'regex')) out.push({ id: 'open', icon: 'external', label: 'Abrir sitio', value: '' });
+        break;
+      case 'card':
+        if (e.number) out.push({ id: 'num', icon: 'card', label: 'Número', value: digitsOnly(e.number), toast: 'Número copiado' });
+        if (e.expiry) out.push({ id: 'exp', icon: 'clock', label: 'Vence', value: e.expiry, toast: 'Vencimiento copiado', plain: true });
+        if (!e.dynamicCvv && e.cvv) out.push({ id: 'cvv', icon: 'lock', label: 'CVV', value: e.cvv, toast: 'CVV copiado' });
+        if (e.dynamicCvv && (e.bankAppPackage || e.bankAppUrl)) out.push({ id: 'bank', icon: 'bank', label: 'App banco', value: '' });
+        break;
+      case 'wifi':
+        if (e.password) out.push({ id: 'pass', icon: 'key', label: 'Contraseña', value: e.password, toast: 'Contraseña copiada' });
+        if (e.ssid) out.push({ id: 'ssid', icon: 'wifi', label: 'Red', value: e.ssid, toast: 'Red copiada', plain: true });
+        if (e.ssid) out.push({ id: 'qr', icon: 'qr', label: 'Ver QR', value: '' });
+        break;
+      case 'document':
+        if (e.number) out.push({ id: 'num', icon: 'copy', label: 'Número', value: e.number, toast: 'Número copiado' });
+        if (e.fullName) out.push({ id: 'name', icon: 'identity', label: 'Nombre', value: e.fullName, toast: 'Nombre copiado', plain: true });
+        break;
+      case 'identity':
+        if (e.fullName) out.push({ id: 'name', icon: 'identity', label: 'Nombre', value: e.fullName, toast: 'Nombre copiado', plain: true });
+        if (e.email) out.push({ id: 'email', icon: 'login', label: 'Correo', value: e.email, toast: 'Correo copiado', plain: true });
+        if (e.phone) out.push({ id: 'phone', icon: 'phone', label: 'Teléfono', value: e.phone, toast: 'Teléfono copiado', plain: true });
+        break;
+      case 'note':
+        if (e.notes) out.push({ id: 'note', icon: 'copy', label: 'Copiar nota', value: e.notes, toast: 'Nota copiada' });
+        break;
+    }
+    out.push({ id: 'edit', icon: 'edit', label: 'Editar', value: '' });
+    return out.slice(0, 4);
+  });
+  protected readonly flashed = signal<string | null>(null);
+  protected readonly menu = signal(false);
+  protected readonly flipCard = signal(false);
+  protected readonly showDoc = signal(false);
+  protected readonly scrolled = signal(false);
   protected readonly confirmDelete = signal(false);
   protected readonly showHistory = signal(false);
   protected readonly revealCard = signal(false);
@@ -68,6 +169,10 @@ export class Detail {
     effect(async () => {
       const e = this.entry();
       this.revealCard.set(false);
+      this.flipCard.set(false);
+      this.cardTab.set('card');
+      this.showDoc.set(false);
+      this.menu.set(false);
       this.confirmDelete.set(false);
       if (!e) return;
       const out: Record<string, string> = {};
@@ -82,6 +187,52 @@ export class Detail {
       }
       this.previews.set(out);
     });
+  }
+
+  protected run(a: QuickAction): void {
+    const e = this.entry();
+    if (!e) return;
+    switch (a.id) {
+      case 'open': {
+        const u = e.kind === 'login' ? e.urls.find((x) => x.match !== 'regex') : undefined;
+        if (u) this.openUrl(u.value);
+        return;
+      }
+      case 'edit':
+        void this.router.navigate(['/item', e.id, 'edit']);
+        return;
+      case 'bank':
+        if (e.kind === 'card') this.openBank(e);
+        return;
+      case 'qr':
+        document.getElementById('wifi-qr')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      case 'totp': {
+        const info = e.kind === 'login' && e.totp ? parseTotp(e.totp) : null;
+        if (info) void this.clipboard.copy(totpNow(info, Date.now()).code, a.toast!);
+        break;
+      }
+      default:
+        void this.clipboard.copy(a.value, a.toast, !a.plain);
+    }
+    if (!a.plain) this.used();
+    this.flashed.set(a.id);
+    navigator.vibrate?.(10);
+    setTimeout(() => this.flashed() === a.id && this.flashed.set(null), 1400);
+  }
+
+  protected filterBy(f: Filter): void {
+    this.ui.filter.set(f);
+    this.ui.query.set('');
+    void this.router.navigate(['/']);
+  }
+
+  protected onScroll(ev: Event): void {
+    this.scrolled.set((ev.target as HTMLElement).scrollTop > 40);
+  }
+
+  protected mask(v: string): string {
+    return v ? '•'.repeat(Math.max(0, Math.min(v.length - 4, 10))) + v.slice(-4) : '—';
   }
 
   protected asCard(e: Entry): CardEntry {
@@ -116,12 +267,15 @@ export class Detail {
   protected async remove(): Promise<void> {
     const e = this.entry();
     if (!e) return;
+    // Las tarjetas que la usaban como banca en línea se quedan sin ella.
+    for (const c of this.store.entries().filter((x): x is CardEntry => x.kind === 'card' && x.loginId === e.id)) await this.store.save({ ...c, loginId: null }, { touch: false });
     await this.store.remove(e.id);
     this.toasts.show(`“${e.title || 'Elemento'}” eliminado`);
     void this.router.navigate(['/']);
   }
 
   protected async duplicate(): Promise<void> {
+    this.menu.set(false);
     const e = this.entry();
     if (!e) return;
     const { uuidv7 } = await import('@keyme/models');
@@ -131,9 +285,33 @@ export class Detail {
     void this.router.navigate(['/item', copy.id]);
   }
 
-  protected async moveTo(spaceId: string | null): Promise<void> {
+  protected async setOwner(ownerId: string | null): Promise<void> {
+    this.menu.set(false);
     const e = this.entry();
-    if (e) await this.store.save({ ...e, spaceId });
+    if (!e) return;
+    await this.store.save({ ...e, ownerId });
+    this.toasts.show(ownerId ? `Ahora es de ${this.personName(ownerId)}` : 'Ahora es tuya');
+  }
+
+  protected personName(id: string | null | undefined): string {
+    return id ? this.ui.personById().get(id)?.name ?? '' : '';
+  }
+
+  /** La app del banco: la de la tarjeta o, si no tiene, la del login. */
+  protected openBankApp(c: CardEntry, l: LoginEntry): void {
+    this.openBank({ ...c, bankAppPackage: c.bankAppPackage || l.androidPackages[0] || '' });
+  }
+
+  protected bankUsed(l: LoginEntry): void {
+    void this.store.markUsed(l);
+  }
+
+  protected async moveTo(spaceId: string | null): Promise<void> {
+    this.menu.set(false);
+    const e = this.entry();
+    if (!e) return;
+    await this.store.save({ ...e, spaceId });
+    this.toasts.show(`Movido a ${this.ui.spaceById().get(spaceId ?? '')?.name ?? 'otro espacio'}`);
   }
 
   protected openUrl(u: string): void {

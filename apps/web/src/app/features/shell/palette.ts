@@ -32,7 +32,7 @@ interface Action {
           <div class="res">
             @for (e of results(); track e.id; let i = $index) {
               <div class="r" [class.on]="i === index()" (mouseenter)="index.set(i)" (click)="open(e)">
-                <km-avatar [entry]="e" [size]="32" [ring]="ui.spaceById().get(e.spaceId ?? '')?.color ?? null" />
+                <km-avatar [entry]="e" [size]="40" [ring]="ui.spaceById().get(e.spaceId ?? '')?.color ?? null" />
                 <span class="t"><b>{{ e.title || 'Sin título' }}</b><span class="faint small">{{ sub(e) }}</span></span>
                 @if (i === index()) {
                   <span class="hints">
@@ -55,18 +55,18 @@ interface Action {
     }
   `,
   styles: `
-    .backdrop { padding-top: 12vh; }
-    .pal { width: min(640px, 100%); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 18px; box-shadow: var(--shadow-lg); overflow: hidden; animation: pop .16s var(--ease); }
-    .in { display: flex; align-items: center; gap: 12px; padding: 0 16px; height: 58px; border-bottom: 1px solid var(--line); color: var(--text-3); }
-    .in input { flex: 1; background: none; border: 0; outline: 0; color: var(--text); font: 17px var(--font-ui); box-shadow: none !important; }
-    .res { max-height: 52vh; overflow: auto; padding: 6px; }
-    .r { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 11px; cursor: pointer; }
+    .backdrop { padding-top: 11vh; }
+    .pal { width: min(680px, 100%); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 24px; box-shadow: var(--shadow-lg); overflow: hidden; animation: pop .28s var(--spring); }
+    .in { display: flex; align-items: center; gap: 14px; padding: 0 18px; height: 66px; border-bottom: 1px solid var(--line); color: var(--accent); }
+    .in input { flex: 1; background: none; border: 0; outline: 0; color: var(--text); font: 19px var(--font-ui); box-shadow: none !important; }
+    .res { max-height: 56vh; overflow: auto; padding: 8px; }
+    .r { display: flex; align-items: center; gap: 14px; padding: 9px 12px; border-radius: 14px; cursor: pointer; transition: background .12s; animation: rise .3s var(--ease-emph) both; }
     .r.on { background: var(--surface-2); }
-    .t { flex: 1; min-width: 0; display: flex; flex-direction: column; b { font-weight: 560; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
-    .hints { display: flex; gap: 10px; font-size: 11.5px; color: var(--text-3); white-space: nowrap; > span { display: flex; gap: 4px; align-items: center; } }
-    .ai { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
-    .none { padding: 16px; margin: 0; }
-    @media (max-width: 640px) { .hints { display: none; } }
+    .t { flex: 1; min-width: 0; display: flex; flex-direction: column; b { font-weight: 620; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+    .hints { display: flex; gap: 12px; font-size: 12px; color: var(--text-3); white-space: nowrap; > span { display: flex; gap: 4px; align-items: center; } }
+    .ai { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+    .none { padding: 18px; margin: 0; }
+    @media (max-width: 640px) { .hints { display: none; } .backdrop { padding-top: calc(12px + env(safe-area-inset-top)); } }
   `,
 })
 export class Palette {
@@ -78,15 +78,20 @@ export class Palette {
 
   protected readonly query = signal('');
   protected readonly index = signal(0);
-  protected readonly sub = subtitle;
+  /** Con varias cuentas del mismo servicio, el subtítulo dice cuál es y de quién. */
+  protected sub(e: Entry): string {
+    const owner = e.ownerId ? this.ui.personById().get(e.ownerId)?.name : '';
+    return [subtitle(e), owner && `de ${owner}`].filter(Boolean).join(' · ');
+  }
 
   protected readonly results = computed(() => {
     const q = this.query().trim();
     const spaces = this.ui.spaceById();
+    const people = this.ui.personById();
     const list = this.store.entries();
     if (!q) return [...list].sort((a, b) => (b.usage?.lastUsedAt ?? b.modifiedAt).localeCompare(a.usage?.lastUsedAt ?? a.modifiedAt)).slice(0, 8);
     return list
-      .map((e) => ({ e, s: fuzzyScore(q, searchText(e, spaces.get(e.spaceId ?? '')?.name)) + Math.min(e.usage?.count ?? 0, 10) * 0.3 }))
+      .map((e) => ({ e, s: fuzzyScore(q, searchText(e, spaces.get(e.spaceId ?? '')?.name, people.get(e.ownerId ?? '')?.name)) + Math.min(e.usage?.count ?? 0, 10) * 0.3 }))
       .filter((x) => x.s > 0)
       .sort((a, b) => b.s - a.s)
       .slice(0, 12)

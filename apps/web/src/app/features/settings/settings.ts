@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, type OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { SPACE_COLORS, isEntry, normalizeEntry, uuidv7, type Entry, type Settings, type SiteRule, type Space, type VaultRecord } from '@keyme/models';
+import { SPACE_COLORS, isEntry, normalizeEntry, uuidv7, type Entry, type Person, type Settings, type SiteRule, type Space, type VaultRecord } from '@keyme/models';
 import type { KeymeExport } from '@keyme/crypto';
 import { Api, ApiError, type AuditDto, type DeviceDto } from '../../core/api';
 import { CryptoClient, CryptoError } from '../../core/crypto.client';
@@ -68,6 +68,10 @@ export class SettingsPage implements OnInit {
   protected readonly editing = signal<string | null>(null);
   protected readonly deleting = signal<string | null>(null);
   protected moveTarget: string | null = null;
+
+  // Personas
+  protected readonly editingPerson = signal<string | null>(null);
+  protected readonly deletingPerson = signal<string | null>(null);
 
   // Reglas por sitio
   protected newRule: SiteRule = { domain: '', rule: { symbols: false } };
@@ -246,6 +250,31 @@ export class SettingsPage implements OnInit {
     this.toasts.show(`Espacio “${sp.name}” eliminado`);
   }
 
+  // ----- Personas -------------------------------------------------------
+
+  protected async addPerson(): Promise<void> {
+    const people = this.s().people;
+    const p: Person = { id: uuidv7(), name: 'Nueva persona', color: SPACE_COLORS[(people.length + 3) % SPACE_COLORS.length] };
+    await this.store.saveSettings({ people: [...people, p] });
+    this.editingPerson.set(p.id);
+  }
+
+  protected updatePerson(p: Person, patch: Partial<Person>): void {
+    this.save({ people: this.s().people.map((x) => (x.id === p.id ? { ...x, ...patch } : x)) });
+  }
+
+  protected countOf(personId: string): number {
+    return this.store.entries().filter((e) => e.ownerId === personId).length;
+  }
+
+  /** Sus cuentas no se borran: vuelven a ser tuyas. */
+  protected async deletePerson(p: Person): Promise<void> {
+    for (const e of this.store.entries().filter((x) => x.ownerId === p.id)) await this.store.save({ ...e, ownerId: null }, { touch: false });
+    await this.store.saveSettings({ people: this.s().people.filter((x) => x.id !== p.id) });
+    this.deletingPerson.set(null);
+    this.toasts.show(`Quitaste a “${p.name}”; sus cuentas quedaron como tuyas`);
+  }
+
   // ----- Reglas por sitio -----------------------------------------------
 
   protected addRule(): void {
@@ -301,6 +330,8 @@ export class SettingsPage implements OnInit {
       const spaces = payload.records.filter((r): r is Space => r.kind === 'space');
       this.importPreview.set({ entries, skipped: 0, warnings: spaces.length ? [`Incluye ${spaces.length} espacio(s)`] : [] });
       this.keymeSpaces = spaces;
+      const settings = payload.records.find((r): r is Settings => r.kind === 'settings');
+      this.keymePeople = settings?.people ?? [];
       this.importNeedsPassword.set(false);
     } catch {
       this.toasts.show('Contraseña de exportación incorrecta', 'error');
@@ -310,6 +341,7 @@ export class SettingsPage implements OnInit {
   }
 
   private keymeSpaces: Space[] = [];
+  private keymePeople: Person[] = [];
 
   /** Re-asigna el espacio elegido a la vista previa. */
   protected pickSpaceAgain(): void {
@@ -340,10 +372,14 @@ export class SettingsPage implements OnInit {
         records.push(this.store.get(entry.id) ? { ...entry, id: uuidv7() } : entry);
       }
       await this.store.bulkInsert(records);
+      const knownPeople = new Set(this.s().people.map((x) => x.id));
+      const newPeople = this.keymePeople.filter((x) => !knownPeople.has(x.id));
+      if (newPeople.length) await this.store.saveSettings({ people: [...this.s().people, ...newPeople] });
       this.toasts.show(`Importados ${records.filter(isEntry).length} elementos`);
       this.importFile.set(null);
       this.importPreview.set(null);
       this.keymeSpaces = [];
+      this.keymePeople = [];
       this.importPassword = '';
     } finally {
       this.importBusy.set(false);

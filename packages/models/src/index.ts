@@ -100,6 +100,8 @@ export interface CardEntry extends EntryBase {
   cvv: string;
   dynamicCvv: boolean;
   pin: string;
+  /** CLABE interbancaria (18 dígitos) para recibir transferencias SPEI. */
+  clabe: string;
   bank: string;
   network: CardNetwork;
   /** Paquete Android de la app del banco, p. ej. com.bbva.bbvacontigo */
@@ -269,7 +271,7 @@ export function newEntry<K extends EntryKind>(kind: K, spaceId: string | null, n
   };
   const extra: Record<EntryKind, object> = {
     login: { username: '', password: '', urls: [], androidPackages: [], recoveryCodes: [], signInWith: null },
-    card: { holder: '', number: '', expiry: '', cvv: '', dynamicCvv: false, pin: '', bank: '', network: 'other', bankAppPackage: '', bankAppUrl: '', loginId: null },
+    card: { holder: '', number: '', expiry: '', cvv: '', dynamicCvv: false, pin: '', clabe: '', bank: '', network: 'other', bankAppPackage: '', bankAppUrl: '', loginId: null },
     document: { docType: 'ine', number: '', fullName: '', issuedAt: '', expiresAt: '' },
     identity: { fullName: '', email: '', phone: '', birthDate: '', street: '', city: '', state: '', zip: '', country: 'México' },
     note: {},
@@ -379,6 +381,53 @@ export function cardExpiryDate(expiry: string): Date | null {
   if (year < 100) year += 2000;
   if (month < 1 || month > 12) return null;
   return new Date(year, month, 0, 23, 59, 59);
+}
+
+// ---------------------------------------------------------------------------
+// CLABE interbancaria
+// ---------------------------------------------------------------------------
+
+/** Bancos más comunes por los 3 primeros dígitos de la CLABE. */
+const CLABE_BANKS: Record<string, string> = {
+  '002': 'Banamex',
+  '012': 'BBVA',
+  '014': 'Santander',
+  '021': 'HSBC',
+  '030': 'BanBajío',
+  '036': 'Inbursa',
+  '044': 'Scotiabank',
+  '058': 'Banregio',
+  '072': 'Banorte',
+  '127': 'Banco Azteca',
+  '137': 'BanCoppel',
+  '638': 'Nu',
+  '646': 'STP',
+  '722': 'Mercado Pago',
+};
+
+/** Dígito verificador de una CLABE (pesos 3-7-1 sobre los primeros 17 dígitos). */
+export function clabeCheckDigit(first17: string): number {
+  const w = [3, 7, 1];
+  let sum = 0;
+  for (let i = 0; i < 17; i++) sum += (+first17[i] * w[i % 3]) % 10;
+  return (10 - (sum % 10)) % 10;
+}
+
+export function clabeValid(clabe: string): boolean {
+  const n = digitsOnly(clabe);
+  return n.length === 18 && clabeCheckDigit(n) === +n[17];
+}
+
+/** 3-3-11-1: banco, plaza, cuenta y dígito verificador. */
+export function formatClabe(clabe: string): string {
+  const n = digitsOnly(clabe);
+  return [n.slice(0, 3), n.slice(3, 6), n.slice(6, 17), n.slice(17)].filter(Boolean).join(' ');
+}
+
+/** Banco al que pertenece la CLABE, si lo conocemos. */
+export function clabeBank(clabe: string): string | null {
+  const n = digitsOnly(clabe);
+  return n.length >= 3 ? (CLABE_BANKS[n.slice(0, 3)] ?? null) : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -501,7 +550,7 @@ export function fuzzyScore(query: string, text: string): number {
 export function searchText(e: Entry, spaceName = '', ownerName = ''): string {
   const parts: string[] = [e.title, e.tags.join(' '), spaceName, ownerName, KIND_LABELS[e.kind]];
   if (e.kind === 'login') parts.push(e.username, ...e.urls.map((u) => u.value), ...e.androidPackages);
-  if (e.kind === 'card') parts.push(e.bank, e.holder, digitsOnly(e.number).slice(-4));
+  if (e.kind === 'card') parts.push(e.bank, e.holder, digitsOnly(e.number).slice(-4), digitsOnly(e.clabe ?? '').slice(-4));
   if (e.kind === 'document') parts.push(DOC_LABELS[e.docType], e.fullName);
   if (e.kind === 'identity') parts.push(e.fullName, e.email, e.phone);
   if (e.kind === 'wifi') parts.push(e.ssid);

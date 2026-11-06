@@ -7,6 +7,13 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- Las tarjetas (débito, crédito o cualquier otra) pueden guardar su CLABE
+  interbancaria para recibir transferencias. El editor la formatea y valida
+  el dígito verificador y reconoce el banco; la ficha y la cartera la copian
+  con un toque, y se puede buscar por sus últimos 4 dígitos.
+
 ## [1.2.0] - 2026-11-05
 
 Keyme estrena cara. Cada cuenta lleva el logo real de su servicio, lo que

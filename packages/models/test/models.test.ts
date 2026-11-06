@@ -28,6 +28,17 @@ describe('modelos', () => {
     expect(m.formatCard('378282246310005')).toBe('3782 822463 10005');
   });
 
+  it('CLABE', () => {
+    expect(m.newEntry('card', null).clabe).toBe('');
+    expect(m.clabeValid('032180000118359719')).toBe(true);
+    expect(m.clabeValid('032 180 00011835971 9')).toBe(true);
+    expect(m.clabeValid('032180000118359718')).toBe(false);
+    expect(m.clabeValid('03218000011835971')).toBe(false);
+    expect(m.formatClabe('032180000118359719')).toBe('032 180 00011835971 9');
+    expect(m.clabeBank('012180000118359713')).toBe('BBVA');
+    expect(m.clabeBank('999')).toBeNull();
+  });
+
   it('vencimientos', () => {
     const d = m.newEntry('document', null);
     d.expiresAt = '2026-11-10';

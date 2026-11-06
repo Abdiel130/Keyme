@@ -80,6 +80,7 @@ export function importSafeInCloud(xml: string, spaceId: string | null): ImportRe
       c.number = digitsOnly(take((f) => f.type === 'number' || named('número', 'number', 'numero')(f)));
       c.expiry = take((f) => f.type === 'expiry' || named('vence', 'expir', 'caduc')(f));
       c.cvv = take(named('cvv', 'cvc', 'código', 'codigo'));
+      c.clabe = digitsOnly(take(named('clabe', 'interbancaria')));
       c.pin = take((f) => f.type === 'pin' || named('pin', 'nip')(f));
       c.holder = take(named('titular', 'owner', 'nombre', 'name'));
       c.bank = take(named('banco', 'bank'));

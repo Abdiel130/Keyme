@@ -45,6 +45,7 @@ const PEEK = 62;
               } @else if (c.cvv) {
                 <button class="act" (click)="copy(c.cvv, 'CVV copiado', c)"><span class="ai"><km-icon name="lock" [size]="20" /></span>CVV</button>
               }
+              @if (c.clabe) { <button class="act" (click)="copy(digitsOnly(c.clabe), 'CLABE copiada', c, false)"><span class="ai"><km-icon name="bank" [size]="20" /></span>CLABE</button> }
               @if (bankOf(c); as l) {
                 @if (l.username) { <button class="act" (click)="copy(l.username, 'Usuario del banco copiado', undefined, false); used(l)"><span class="ai"><km-icon name="bank" [size]="20" /></span>Usuario app</button> }
                 @if (l.password) { <button class="act" (click)="copy(l.password, 'Contraseña del banco copiada'); used(l)"><span class="ai"><km-icon name="key" [size]="20" /></span>Clave app</button> }

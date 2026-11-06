@@ -3,7 +3,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
-  DOC_LABELS, KIND_LABELS, baseDomain, detectNetwork, digitsOnly, formatCard, hostOf, isEntry, luhnValid, newEntry, serviceKey, titlePrefix, uuidv7,
+  DOC_LABELS, KIND_LABELS, baseDomain, clabeBank, clabeValid, detectNetwork, digitsOnly, formatCard, formatClabe, hostOf, isEntry, luhnValid, newEntry, serviceKey, titlePrefix, uuidv7,
   type AttachmentRef, type CardEntry, type Entry, type EntryKind, type GeneratorRule, type LoginEntry, type UrlMatch,
 } from '@keyme/models';
 import { Brands, hueOf, type Brand } from '../../core/brands';
@@ -371,6 +371,28 @@ export class Editor {
   protected readonly cardInvalid = computed(() => {
     this.rev();
     return this.draft?.kind === 'card' && this.card.number.length >= 13 && !luhnValid(this.card.number);
+  });
+
+  protected onClabe(v: string): void {
+    this.card.clabe = digitsOnly(v).slice(0, 18);
+    this.touch();
+  }
+
+  protected readonly clabeFormatted = computed(() => {
+    this.rev();
+    return this.draft?.kind === 'card' ? formatClabe(this.card.clabe ?? '') : '';
+  });
+
+  /** Aviso bajo la CLABE: incompleta, dígito verificador malo o el banco que detectamos. */
+  protected readonly clabeHint = computed<{ bad: boolean; text: string } | null>(() => {
+    this.rev();
+    if (this.draft?.kind !== 'card') return null;
+    const n = this.card.clabe ?? '';
+    if (!n) return null;
+    if (n.length < 18) return { bad: false, text: `Faltan ${18 - n.length} dígitos (son 18).` };
+    if (!clabeValid(n)) return { bad: true, text: 'El dígito verificador no coincide. Revisa la CLABE.' };
+    const bank = clabeBank(n);
+    return { bad: false, text: bank ? `CLABE válida · ${bank}` : 'CLABE válida' };
   });
 
   protected onExpiry(v: string): void {

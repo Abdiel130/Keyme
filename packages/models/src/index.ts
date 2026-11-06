@@ -65,6 +65,8 @@ interface EntryBase {
   ownerId?: string | null;
   tags: string[];
   favorite: boolean;
+  /** Archivada: fuera de la lista, búsqueda y accesos rápidos; solo en el cajón oculto. */
+  archived?: boolean;
   notes: string;
   fields: CustomField[];
   attachments: AttachmentRef[];

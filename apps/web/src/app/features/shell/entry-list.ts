@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { NavigationEnd, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -18,6 +18,10 @@ interface Section {
 
 /** Distancia (px) que hay que deslizar una fila para copiar. */
 const SWIPE = 84;
+/** Distancia (px, ya amortiguada) que hay que jalar la lista hacia abajo para abrir las archivadas. */
+const PULL = 92;
+/** Lo más que se estira el indicador al jalar. */
+const PULL_MAX = 150;
 
 @Component({
   selector: 'km-entry-list',
@@ -39,7 +43,7 @@ export class EntryList {
   protected readonly selected = computed(() => /^\/item\/([^/?]+)/.exec(this.url())?.[1] ?? null);
   /** Último elemento abierto: su ícono viaja de vuelta a la lista en móvil. */
   protected readonly lastOpened = signal<string | null>(null);
-  protected readonly expiring = computed(() => expiringSoon(this.store.entries(), 30));
+  protected readonly expiring = computed(() => expiringSoon(this.store.shown(), 30));
   protected readonly sortOpen = signal(false);
   protected readonly scrolled = signal(false);
   /** Fila con feedback de "copiado" (id:campo). */
@@ -76,12 +80,12 @@ export class EntryList {
 
   /** Accesos directos arriba de la lista: favoritos (o los más usados). */
   protected readonly quick = computed(() => {
-    if (this.ui.filter().type !== 'all' || this.ui.query().trim()) return [];
-    const favs = this.store.entries().filter((e) => e.favorite);
-    const list = favs.length >= 3 ? favs : [...this.store.entries()].filter((e) => (e.usage?.count ?? 0) > 0);
+    if (this.ui.archiveOpen() || this.ui.filter().type !== 'all' || this.ui.query().trim()) return [];
+    const favs = this.store.shown().filter((e) => e.favorite);
+    const list = favs.length >= 3 ? favs : [...this.store.shown()].filter((e) => (e.usage?.count ?? 0) > 0);
     return list.sort((a, b) => (b.usage?.count ?? 0) - (a.usage?.count ?? 0)).slice(0, 10);
   });
-  protected readonly quickLabel = computed(() => (this.store.entries().filter((e) => e.favorite).length >= 3 ? 'Favoritos' : 'Lo que más usas'));
+  protected readonly quickLabel = computed(() => (this.store.shown().filter((e) => e.favorite).length >= 3 ? 'Favoritos' : 'Lo que más usas'));
 
   /** En orden A–Z la lista se parte por letra, como una agenda. */
   protected readonly sections = computed<Section[]>(() => {
@@ -257,6 +261,120 @@ export class EntryList {
 
   protected onScroll(ev: Event): void {
     this.scrolled.set((ev.target as HTMLElement).scrollTop > 8);
+    this.lastScrollAt = performance.now();
+  }
+
+  // ----- Cajón de archivadas: jalar la lista hacia abajo desde arriba --------
+
+  /** Cuánto se ha jalado (px, amortiguado). 0 = en reposo. */
+  protected readonly pull = signal(0);
+  /** true mientras el dedo (o la rueda) sigue jalando: sin transición. */
+  protected readonly pulling = signal(false);
+  protected readonly pullAt = PULL;
+  protected readonly armed = computed(() => this.pull() >= PULL);
+  /** 0…1 para escalar y girar el ícono del indicador. */
+  protected readonly pullProgress = computed(() => Math.min(1, this.pull() / PULL));
+  /** Dispara la animación de entrada/salida del cajón. */
+  protected readonly drawerAnim = signal<'in' | 'out' | null>(null);
+
+  private touch: { y: number; x: number; locked: boolean | null } | null = null;
+  private wheelAcc = 0;
+  private wheelTimer: ReturnType<typeof setTimeout> | undefined;
+  /** La inercia de un scroll que acaba de llegar arriba no cuenta como jalón. */
+  private lastScrollAt = 0;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.wheelTimer));
+  }
+
+  /** Resistencia elástica: al principio sigue al dedo y luego se endurece. */
+  private rubber(d: number): number {
+    return Math.min(PULL_MAX, PULL_MAX * (1 - Math.exp(-d / 210)));
+  }
+
+  private setPull(v: number): void {
+    const was = this.pull() >= PULL;
+    this.pull.set(v);
+    if (!was && v >= PULL) navigator.vibrate?.(10);
+  }
+
+  protected pullStart(ev: TouchEvent, el: HTMLElement): void {
+    if (this.ui.archiveOpen() || ev.touches.length !== 1 || el.scrollTop > 0) {
+      this.touch = null;
+      return;
+    }
+    this.touch = { y: ev.touches[0].clientY, x: ev.touches[0].clientX, locked: null };
+  }
+
+  protected pullMove(ev: TouchEvent, el: HTMLElement): void {
+    const t = this.touch;
+    if (!t || this.drag()) return;
+    const dy = ev.touches[0].clientY - t.y;
+    const dx = ev.touches[0].clientX - t.x;
+    if (t.locked === null && Math.hypot(dx, dy) > 6) t.locked = dy > 0 && dy > Math.abs(dx) && el.scrollTop <= 0;
+    if (!t.locked) return;
+    if (ev.cancelable) ev.preventDefault();
+    this.pulling.set(true);
+    this.setPull(this.rubber(Math.max(0, dy)));
+  }
+
+  protected pullEnd(): void {
+    if (!this.touch) return;
+    this.touch = null;
+    this.release();
+  }
+
+  /** En escritorio: rueda o trackpad hacia arriba estando ya en el tope. */
+  protected onWheel(ev: WheelEvent, el: HTMLElement): void {
+    if (this.ui.archiveOpen() || ev.ctrlKey) return;
+    const now = performance.now();
+    // Un flujo de rueda que venía scrolleando (o su inercia) no abre nada:
+    // hay que hacer una pausa ya estando arriba y volver a jalar.
+    const fresh = now - this.lastScrollAt > 350;
+    if (el.scrollTop > 0 || ev.deltaY >= 0 || (!this.wheelAcc && !fresh)) {
+      if (!this.wheelAcc) this.lastScrollAt = now;
+      else if (ev.deltaY > 0) this.cancelWheel();
+      return;
+    }
+    this.wheelAcc += -ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
+    this.pulling.set(true);
+    this.setPull(this.rubber(this.wheelAcc * 0.55));
+    clearTimeout(this.wheelTimer);
+    this.wheelTimer = setTimeout(() => {
+      this.wheelAcc = 0;
+      this.release();
+    }, 220);
+  }
+
+  private cancelWheel(): void {
+    clearTimeout(this.wheelTimer);
+    this.wheelAcc = 0;
+    this.pulling.set(false);
+    this.pull.set(0);
+  }
+
+  private release(): void {
+    const open = this.armed();
+    this.pulling.set(false);
+    this.pull.set(0);
+    if (open) this.openArchive();
+  }
+
+  protected openArchive(): void {
+    if (this.ui.archiveOpen()) return;
+    this.drawerAnim.set('in');
+    this.ui.setArchive(true);
+    navigator.vibrate?.([6, 40, 12]);
+  }
+
+  protected closeArchive(): void {
+    if (!this.ui.archiveOpen()) return;
+    this.drawerAnim.set('out');
+    this.ui.setArchive(false);
+  }
+
+  protected archiveKey(ev: KeyboardEvent): void {
+    if (ev.key === 'Escape' && this.ui.archiveOpen() && !this.ui.query()) this.closeArchive();
   }
 
   protected spaceColor(e: Entry): string | null {

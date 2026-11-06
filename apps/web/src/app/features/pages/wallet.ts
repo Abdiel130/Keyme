@@ -146,11 +146,11 @@ export class Wallet {
   protected readonly flip = signal(false);
 
   protected readonly cards = computed(() =>
-    this.store.entries().filter((e): e is CardEntry => e.kind === 'card')
+    this.store.shown().filter((e): e is CardEntry => e.kind === 'card')
       .sort((a, b) => Number(b.favorite) - Number(a.favorite) || (b.usage?.count ?? 0) - (a.usage?.count ?? 0)),
   );
   protected readonly openCard = computed(() => this.cards().find((c) => c.id === this.open()) ?? null);
-  protected readonly docs = computed(() => this.store.entries().filter((e): e is DocumentEntry => e.kind === 'document'));
+  protected readonly docs = computed(() => this.store.shown().filter((e): e is DocumentEntry => e.kind === 'document'));
 
   /** Posición de cada tarjeta: en pila, o la abierta arriba y el resto al fondo. */
   protected place(i: number): { y: number; s: number; z: number; piled: boolean } {

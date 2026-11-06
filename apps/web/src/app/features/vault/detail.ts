@@ -90,7 +90,8 @@ export class Detail {
     const e = this.entry();
     if (!e) return null;
     const key = serviceKey(e, this.get);
-    const all = this.store.entries().filter((x) => serviceKey(x, this.get) === key);
+    // Las archivadas no se asoman desde una cuenta visible (ni al revés).
+    const all = this.store.entries().filter((x) => !!x.archived === !!e.archived && serviceKey(x, this.get) === key);
     const others = all.filter((x) => x.id !== e.id && x.id !== this.bankLogin()?.id && !this.cards().some((c) => c.id === x.id));
     return { name: serviceName(all), others };
   });
@@ -255,6 +256,23 @@ export class Detail {
   protected async toggleFav(): Promise<void> {
     const e = this.entry();
     if (e) await this.store.save({ ...e, favorite: !e.favorite });
+  }
+
+  /** Archivar esconde la cuenta en el cajón oculto (jalar la lista hacia abajo). */
+  protected async toggleArchive(): Promise<void> {
+    this.menu.set(false);
+    const e = this.entry();
+    if (!e) return;
+    const archived = !e.archived;
+    await this.store.save({ ...e, archived }, { touch: false });
+    const name = `“${e.title || 'Elemento'}”`;
+    const undo = { label: 'Deshacer', run: () => void this.store.save({ ...e }, { touch: false }) };
+    if (archived) {
+      this.toasts.show(`${name} archivada · desliza la lista hacia abajo para verla`, 'ok', { action: undo });
+      if (!this.ui.archiveOpen()) void this.router.navigate(['/']);
+    } else {
+      this.toasts.show(`${name} vuelve a la bóveda`, 'ok', { action: undo });
+    }
   }
 
   protected async toggleCode(i: number): Promise<void> {

@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { KIND_LABELS, fuzzyScore, isEntry, searchText, serviceKey, serviceName, type Entry, type EntryKind } from '@keyme/models';
 import { VaultStore } from './vault.store';
 
@@ -50,6 +50,23 @@ export class UiState {
   readonly paletteOpen = signal(false);
   readonly newMenuOpen = signal(false);
   readonly railOpen = signal(false);
+  /** Cajón de archivadas abierto: la lista muestra solo lo oculto. Nunca se guarda. */
+  readonly archiveOpen = signal(false);
+
+  constructor() {
+    // Al bloquear, el cajón vuelve a quedar escondido.
+    effect(() => {
+      if (this.store.state() !== 'unlocked') this.archiveOpen.set(false);
+    });
+  }
+
+  /** Abre o cierra el cajón; la búsqueda y el filtro empiezan limpios en cada lado. */
+  setArchive(open: boolean): void {
+    if (this.archiveOpen() === open) return;
+    this.query.set('');
+    this.filter.set({ type: 'all' });
+    this.archiveOpen.set(open);
+  }
 
   setSort(s: Sort): void {
     this.sort.set(s);
@@ -79,10 +96,11 @@ export class UiState {
   });
 
   readonly filtered = computed<Entry[]>(() => {
-    const f = this.filter();
+    const archive = this.archiveOpen();
+    const f: Filter = archive ? { type: 'all' } : this.filter();
     const spaces = this.spaceById();
     const people = this.personById();
-    let list = this.store.entries();
+    let list = archive ? this.store.archived() : this.store.shown();
     switch (f.type) {
       case 'fav': list = list.filter((e) => e.favorite); break;
       case 'kind': list = list.filter((e) => e.kind === f.kind); break;
@@ -130,7 +148,7 @@ export class UiState {
     const c = { all: 0, fav: 0, kinds: {} as Record<string, number>, spaces: {} as Record<string, number>, none: 0, tags: new Map<string, number>(), people: {} as Record<string, number>, mine: 0 };
     const spaces = this.spaceById();
     const people = this.personById();
-    for (const e of this.store.entries()) {
+    for (const e of this.store.shown()) {
       c.all++;
       if (e.favorite) c.fav++;
       c.kinds[e.kind] = (c.kinds[e.kind] ?? 0) + 1;

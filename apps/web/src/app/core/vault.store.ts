@@ -49,6 +49,10 @@ export class VaultStore {
   readonly online = signal(navigator.onLine);
 
   readonly entries = computed(() => [...this.records().values()].filter(isEntry));
+  /** Lo que se ve a simple vista: todo menos lo archivado. */
+  readonly shown = computed(() => this.entries().filter((e) => !e.archived));
+  /** Cuentas ocultas en el cajón de archivadas. */
+  readonly archived = computed(() => this.entries().filter((e) => e.archived));
   readonly spaces = computed(() =>
     [...this.records().values()].filter((r): r is Space => r.kind === 'space').sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)),
   );

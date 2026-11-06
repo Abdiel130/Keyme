@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
-  DOC_LABELS, KIND_LABELS, accountLabel, digitsOnly, formatCard, hostOf, isEntry, serviceKey, serviceName, wifiQrPayload,
+  DOC_LABELS, KIND_LABELS, accountLabel, digitsOnly, formatCard, formatClabe, hostOf, isEntry, serviceKey, serviceName, wifiQrPayload,
   type AttachmentRef, type CardEntry, type Entry, type HistoryEntry, type LoginEntry,
 } from '@keyme/models';
 import { Brands } from '../../core/brands';
@@ -124,6 +124,7 @@ export class Detail {
         if (e.expiry) out.push({ id: 'exp', icon: 'clock', label: 'Vence', value: e.expiry, toast: 'Vencimiento copiado', plain: true });
         if (!e.dynamicCvv && e.cvv) out.push({ id: 'cvv', icon: 'lock', label: 'CVV', value: e.cvv, toast: 'CVV copiado' });
         if (e.dynamicCvv && (e.bankAppPackage || e.bankAppUrl)) out.push({ id: 'bank', icon: 'bank', label: 'App banco', value: '' });
+        if (e.clabe) out.push({ id: 'clabe', icon: 'bank', label: 'CLABE', value: digitsOnly(e.clabe), toast: 'CLABE copiada', plain: true });
         break;
       case 'wifi':
         if (e.password) out.push({ id: 'pass', icon: 'key', label: 'Contraseña', value: e.password, toast: 'Contraseña copiada' });
@@ -159,6 +160,7 @@ export class Detail {
   protected readonly kindLabel = KIND_LABELS;
   protected readonly docLabel: Record<string, string> = DOC_LABELS;
   protected readonly formatCard = formatCard;
+  protected readonly formatClabe = formatClabe;
   protected readonly hostOf = hostOf;
   protected readonly wifiQr = wifiQrPayload;
 

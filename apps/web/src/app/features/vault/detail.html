@@ -189,6 +189,7 @@
         <div class="group">
           @if (c.holder) { <km-secret-row icon="identity" label="Titular" [value]="c.holder" /> }
           @if (c.bank) { <km-secret-row icon="bank" label="Banco" [value]="c.bank" /> }
+          @if (c.clabe) { <km-secret-row icon="bank" label="CLABE" [value]="c.clabe" [mono]="true" [format]="formatClabe" /> }
         </div>
         }
       }

@@ -196,6 +196,11 @@
           <div class="field"><label for="hol">Titular</label><input id="hol" name="hol" [(ngModel)]="d.holder" (ngModelChange)="touch()" autocapitalize="characters" /></div>
           <div class="field"><label for="bank">Banco</label><input id="bank" name="bank" [(ngModel)]="d.bank" (ngModelChange)="touch()" /></div>
         </div>
+        <div class="field">
+          <label for="clabe">CLABE interbancaria <span class="faint">(opcional, para recibir transferencias)</span></label>
+          <input id="clabe" name="clabe" class="mono" inputmode="numeric" autocomplete="off" [ngModel]="clabeFormatted()" (ngModelChange)="onClabe($event)" (focus)="cardBack.set(false)" placeholder="000 000 00000000000 0" />
+          @if (clabeHint(); as h) { <span class="hint" [class.bad]="h.bad">{{ h.text }}</span> }
+        </div>
         <label class="check"><input type="checkbox" name="dyn" [(ngModel)]="d.dynamicCvv" (ngModelChange)="touch()" /> Esta tarjeta usa CVV dinámico</label>
         @if (d.dynamicCvv) {
           <div class="grid-2 rise">

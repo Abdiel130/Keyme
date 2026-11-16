@@ -109,6 +109,8 @@ export interface CardEntry extends EntryBase {
   bankAppUrl: string;
   /** Tono de la tarjeta en la vista (0-360). */
   hue?: number;
+  /** Color sólido elegido (#rrggbb, p. ej. negro o plata); manda sobre `hue`. */
+  color?: string;
   /**
    * Login de la banca en línea / app del banco. Las tarjetas del mismo banco
    * (débito, crédito, virtuales) comparten uno solo.
@@ -605,6 +607,19 @@ export function sharedBankLogin(card: CardEntry, entries: Entry[], get: (id: str
     if (l?.kind === 'login') return l;
   }
   return null;
+}
+
+/**
+ * Orden de las tarjetas en la cartera y el carrusel: favoritas y más usadas
+ * primero, pero las de un mismo banco y dueño quedan juntas.
+ */
+export function walletOrder(entries: Entry[]): CardEntry[] {
+  const list = entries.filter((e): e is CardEntry => e.kind === 'card')
+    .sort((a, b) => Number(b.favorite) - Number(a.favorite) || (b.usage?.count ?? 0) - (a.usage?.count ?? 0));
+  const rank = new Map<string, number>();
+  const key = (c: CardEntry) => `${c.ownerId ?? ''}|${c.loginId || fold(c.bank.trim()) || c.id}`;
+  list.forEach((c, i) => rank.has(key(c)) || rank.set(key(c), i));
+  return list.map((c, i) => ({ c, i })).sort((a, b) => rank.get(key(a.c))! - rank.get(key(b.c))! || a.i - b.i).map((x) => x.c);
 }
 
 /** Lo que distingue a una cuenta de sus hermanas dentro del grupo. */

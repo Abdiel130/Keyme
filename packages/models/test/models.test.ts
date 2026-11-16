@@ -109,5 +109,18 @@ describe('modelos', () => {
     expect(m.cardKindLabel({})).toBe('');
     expect(m.subtitle(debit)).toBe('BBVA · Débito');
   });
+
+  it('orden de la cartera: más usadas primero, mismo banco junto', () => {
+    const card = (title: string, bank: string, uses: number, extra: object = {}) =>
+      Object.assign(m.newEntry('card', null), { title, bank, usage: uses ? { count: uses, lastUsedAt: '' } : undefined, ...extra });
+    const nu = card('Nu', 'Nu', 9);
+    const bbva1 = card('BBVA Débito', 'BBVA', 5);
+    const amex = card('Amex', 'Amex', 4);
+    const bbva2 = card('BBVA Azul', 'bbva', 1);
+    const fav = card('Favorita', 'HSBC', 0, { favorite: true });
+    const note = m.newEntry('note', null);
+    expect(m.walletOrder([note, bbva2, amex, nu, bbva1, fav]).map((c) => c.title))
+      .toEqual(['Favorita', 'Nu', 'BBVA Débito', 'BBVA Azul', 'Amex']);
+  });
 });
 

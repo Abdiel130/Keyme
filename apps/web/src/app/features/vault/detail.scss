@@ -1,4 +1,4 @@
-.page { position: relative; padding-top: 0; --brand: var(--accent); }
+.page { position: relative; padding-top: 0; --brand: var(--accent); transition: --brand .6s var(--ease-emph); }
 .page > *:not(.halo):not(.topbar) { max-width: 760px; margin-left: auto; margin-right: auto; position: relative; }
 .halo {
   position: absolute; left: 0; right: 0; top: 0; height: 340px; pointer-events: none;
@@ -103,6 +103,37 @@ h3 { margin: 30px 0 12px; display: flex; align-items: center; gap: 8px; color: v
 .card-stage { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 0 auto 18px; perspective: 1200px;
   km-card-visual { cursor: pointer; animation: card-in .7s var(--ease-emph) both; }
 }
+/* Carrusel: la tarjeta abierta al centro y las demás asoman a los lados. */
+.carousel { align-self: stretch; container-type: inline-size; --sw: min(84cqw, 420px); }
+.rail {
+  position: relative; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+  padding: 14px calc((100cqw - var(--sw)) / 2) 20px; scrollbar-width: none; outline: none; border-radius: 22px;
+  &::-webkit-scrollbar { display: none; }
+  &:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+}
+.slide {
+  flex: 0 0 var(--sw); scroll-snap-align: center; scroll-snap-stop: always; cursor: pointer;
+  transform: scale(.88); opacity: .5; transition: transform .4s var(--ease-emph), opacity .4s;
+  km-card-visual { max-width: none; }
+  &.on { transform: none; opacity: 1; }
+  &[aria-current] { cursor: default; }
+}
+.rail-nav { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 24px; margin-top: -6px; }
+.rail-arrow { display: none; }
+@media (hover: hover) { .rail-arrow { display: inline-flex; } }
+.dots { display: flex; gap: 2px; }
+.dot { width: 22px; height: 22px; border: 0; padding: 0; background: none; display: grid; place-items: center; cursor: pointer;
+  &::before { content: ''; width: 7px; height: 7px; border-radius: 4px; background: var(--line-strong); transition: width .3s var(--ease-emph), background .3s; }
+  &.on::before { width: 18px; background: var(--accent); }
+}
+@media (max-width: 860px) {
+  /* En el teléfono el carrusel llega a las orillas de la pantalla. */
+  .carousel { margin-inline: calc(-1 * clamp(18px, 4vw, 48px)); }
+}
+/* Al cambiar de tarjeta en el carrusel la información se materializa en su lugar. */
+.swap { animation: swap-in .48s var(--ease-emph) both; animation-delay: calc(var(--d, 0) * 50ms); }
+@keyframes swap-in { from { opacity: 0; filter: blur(6px); transform: translateY(6px) scale(.985); } }
+
 @keyframes card-in { from { opacity: 0; transform: translateY(24px) rotateX(18deg) scale(.94); } }
 .card-tools { display: flex; gap: 6px; padding: 4px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
 .seg-btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 0; border-radius: 12px; background: none; color: var(--text-2); font: 600 14px var(--font-ui); cursor: pointer; transition: background .2s, color .2s, transform .25s var(--spring);

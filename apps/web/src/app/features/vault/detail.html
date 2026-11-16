@@ -45,8 +45,9 @@
         <km-avatar class="hero-av" [entry]="e" [size]="88" />
       }
       <div class="htxt">
-        <h1>{{ e.title || 'Sin título' }}</h1>
-        <div class="meta">
+        @for (k of [e.id]; track k) {
+        <h1 class="swap">{{ e.title || 'Sin título' }}</h1>
+        <div class="meta swap" style="--d: 1">
           @if (space(); as s) {
             <button class="chip sp" [style.--c]="s.color" (click)="filterBy({ type: 'space', id: s.id })"><km-icon [name]="s.icon" [size]="13" /> {{ s.name }}</button>
           }
@@ -58,9 +59,11 @@
             <button class="chip tagc" (click)="filterBy({ type: 'tag', tag: t })">#{{ t }}</button>
           }
         </div>
+        }
       </div>
     </header>
 
+    @for (k of [e.id]; track k) {
     @if (actions().length) {
       <div class="quick stagger">
         @for (a of actions(); track a.id; let i = $index) {
@@ -70,6 +73,7 @@
           </button>
         }
       </div>
+    }
     }
 
     @switch (e.kind) {
@@ -182,21 +186,50 @@
           }
         } @else {
         <div class="card-stage">
-          <km-card-visual [card]="c" [revealed]="revealCard()" [flipped]="flipCard()" [tilt]="true" (click)="flipCard.set(!flipCard())" (copied)="used()" />
+          @if (deck().length > 1) {
+            <div class="carousel">
+              <div class="rail" #rail tabindex="0" aria-roledescription="carrusel" aria-label="Tus tarjetas: desliza para cambiar"
+                   (scroll)="onRailScroll()" (keydown.arrowleft)="$event.preventDefault(); goTo(deckIndex() - 1)" (keydown.arrowright)="$event.preventDefault(); goTo(deckIndex() + 1)">
+                @for (d of deck(); track d.id; let i = $index) {
+                  @let on = i === deckIndex();
+                  <div class="slide" [class.on]="i === deckIndex()" [attr.aria-current]="on ? 'true' : null" (click)="on ? flipCard.set(!flipCard()) : goTo(i)">
+                    <km-card-visual [card]="d" [revealed]="on && revealCard()" [flipped]="on && flipCard()" [tilt]="on" [interactive]="on" (copied)="used()" />
+                  </div>
+                }
+              </div>
+              <div class="rail-nav">
+                <button class="btn icon ghost sm rail-arrow" (click)="goTo(deckIndex() - 1)" [disabled]="deckIndex() <= 0" aria-label="Tarjeta anterior"><km-icon name="back" [size]="18" /></button>
+                @if (deck().length <= 8) {
+                  <span class="dots">
+                    @for (d of deck(); track d.id; let i = $index) {
+                      <button class="dot" [class.on]="i === deckIndex()" (click)="goTo(i)" [attr.aria-label]="d.title || 'Tarjeta ' + (i + 1)"></button>
+                    }
+                  </span>
+                } @else {
+                  <span class="faint small count">{{ deckIndex() + 1 }} de {{ deck().length }}</span>
+                }
+                <button class="btn icon ghost sm rail-arrow" (click)="goTo(deckIndex() + 1)" [disabled]="deckIndex() >= deck().length - 1" aria-label="Tarjeta siguiente"><km-icon name="chevron" [size]="18" /></button>
+              </div>
+            </div>
+          } @else {
+            <km-card-visual [card]="c" [revealed]="revealCard()" [flipped]="flipCard()" [tilt]="true" (click)="flipCard.set(!flipCard())" (copied)="used()" />
+          }
           <div class="card-tools">
             <button class="seg-btn" [class.on]="revealCard()" (click)="revealCard.set(!revealCard())"><km-icon [name]="revealCard() ? 'eye-off' : 'eye'" [size]="17" /> {{ revealCard() ? 'Ocultar datos' : 'Mostrar datos' }}</button>
             <button class="seg-btn" (click)="flipCard.set(!flipCard())"><km-icon name="sync" [size]="17" /> {{ flipCard() ? 'Ver frente' : 'Ver reverso' }}</button>
           </div>
         </div>
+        @for (k of [c.id]; track k) {
         @if (c.dynamicCvv) {
-          <div class="dyn"><km-icon name="zap" [size]="18" /> <span>CVV dinámico: lo genera la app de tu banco.</span>
+          <div class="dyn swap"><km-icon name="zap" [size]="18" /> <span>CVV dinámico: lo genera la app de tu banco.</span>
             @if (c.bankAppPackage || c.bankAppUrl) { <button class="btn sm tonal" (click)="openBank(c)"><km-icon name="bank" [size]="15" /> Abrir app</button> }
           </div>
         }
-        <div class="group">
+        <div class="group swap" style="--d: 1">
           @if (c.holder) { <km-secret-row icon="identity" label="Titular" [value]="c.holder" /> }
           @if (c.bank) { <km-secret-row icon="bank" label="Banco" [value]="c.bank" /> }
         </div>
+        }
         }
       }
 

@@ -70,6 +70,30 @@ export class Editor {
   protected readonly showMore = signal(false);
   protected readonly cardBack = signal(false);
   protected readonly hues = [28, 210, 145, 0, 265, 330, 190, 50];
+  /** Colores sólidos de tarjetas reales: el degradado se arma solo. */
+  protected readonly solids = [
+    { hex: '#141414', name: 'Negro' },
+    { hex: '#3b3e44', name: 'Grafito' },
+    { hex: '#c9ccd1', name: 'Plata' },
+    { hex: '#c8a45a', name: 'Oro' },
+    { hex: '#d9a99c', name: 'Oro rosa' },
+    { hex: '#efeee9', name: 'Blanco' },
+  ];
+
+  protected setHue(h: number): void {
+    this.card.hue = h;
+    delete this.card.color;
+    this.touch();
+  }
+
+  protected isSolid(hex: string): boolean {
+    return this.solids.some((s) => s.hex === hex);
+  }
+
+  protected setColor(hex: string): void {
+    this.card.color = hex.toLowerCase();
+    this.touch();
+  }
   private added: string[] = [];
 
   // Tarjeta: pestaña de banca en línea
@@ -224,7 +248,7 @@ export class Editor {
     }
     if (base.kind === 'card' && d.kind === 'card') {
       // Otra tarjeta del mismo banco: misma banca en línea, mismo titular.
-      Object.assign(d, { bank: base.bank, dynamicCvv: base.dynamicCvv, bankAppPackage: base.bankAppPackage, bankAppUrl: base.bankAppUrl, holder: base.holder, hue: base.hue, loginId: base.loginId ?? null });
+      Object.assign(d, { bank: base.bank, dynamicCvv: base.dynamicCvv, bankAppPackage: base.bankAppPackage, bankAppUrl: base.bankAppUrl, holder: base.holder, hue: base.hue, color: base.color, loginId: base.loginId ?? null });
     }
   }
 

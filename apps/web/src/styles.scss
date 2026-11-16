@@ -1,5 +1,12 @@
 /* Keyme · "Bóveda cálida" 2 ---------------------------------------------- */
 
+/* Color de marca animable: el halo cambia suave al pasar de una tarjeta a otra. */
+@property --brand {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
 :root {
   --font-display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
   --font-ui: 'Inter Tight Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;

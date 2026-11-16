@@ -14,6 +14,11 @@
         @if (menu()) {
           <div class="menu-scrim" (click)="menu.set(false)"></div>
           <div class="menu" role="menu">
+            <button role="menuitem" (click)="openIconPicker()">
+              <km-avatar [entry]="e" [size]="22" /> Ícono
+              <span class="faint" style="margin-left: auto; font-size: 13px">{{ iconStyleLabel(e.iconStyle) }}</span>
+            </button>
+            <div class="divider"></div>
             <button role="menuitem" (click)="duplicate()"><km-icon name="copy" [size]="18" /> Duplicar</button>
             @if (store.spaces().length > 1) {
               <p class="eyebrow">Mover a</p>
@@ -373,6 +378,12 @@
       <span class="faint tiny">Creado {{ date(e.createdAt) }} · Modificado {{ date(e.modifiedAt) }}@if (e.rotatedAt) { · Contraseña de {{ date(e.rotatedAt) }}}@if (e.usage?.count) { · Usado {{ e.usage!.count }} {{ e.usage!.count === 1 ? 'vez' : 'veces' }}}</span>
     </footer>
   </div>
+
+  @if (iconPicker()) {
+    <km-sheet #ip label="Ícono" width="min(520px, 100%)" (dismissed)="iconPicker.set(false)">
+      <km-icon-picker [entry]="e" (picked)="setIconStyle($event); ip.close()" />
+    </km-sheet>
+  }
 
   @if (confirmDelete()) {
     <km-sheet #del role="alertdialog" label="Eliminar" width="min(440px, 100%)" (dismissed)="confirmDelete.set(false)">

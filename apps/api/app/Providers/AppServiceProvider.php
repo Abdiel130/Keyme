@@ -28,5 +28,11 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         RateLimiter::for('prelogin', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+
+        // Revisión de filtraciones: cada llamada consulta hasta 50 rangos de HIBP.
+        RateLimiter::for('breaches', fn (Request $request) => Limit::perMinute(40)->by('breaches:'.$request->user()?->id));
+
+        // Íconos de sitios: cada llamada pide hasta 6 dominios.
+        RateLimiter::for('icons', fn (Request $request) => Limit::perMinute(60)->by('icons:'.$request->user()?->id));
     }
 }

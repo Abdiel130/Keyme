@@ -56,6 +56,9 @@ export interface GeneratorRule {
   maxLength?: number;
 }
 
+/** library = logo de simple-icons; site = ícono oficial del sitio; letter = monograma. */
+export type IconStyle = 'library' | 'site' | 'letter';
+
 interface EntryBase {
   id: string;
   kind: EntryKind;
@@ -67,6 +70,8 @@ interface EntryBase {
   favorite: boolean;
   /** Archivada: fuera de la lista, búsqueda y accesos rápidos; solo en el cajón oculto. */
   archived?: boolean;
+  /** Ícono elegido a mano. Sin valor = automático (librería, luego sitio, luego monograma). */
+  iconStyle?: IconStyle;
   notes: string;
   fields: CustomField[];
   attachments: AttachmentRef[];

@@ -54,6 +54,21 @@ export interface AuditDto {
   at: string;
 }
 
+export interface BreachedSite {
+  name: string;
+  domain: string;
+  /** AAAA-MM-DD */
+  date: string;
+  added: string;
+  count: number;
+  classes: string[];
+  description: string;
+  verified: boolean;
+  sensitive: boolean;
+  spam: boolean;
+  stealer: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class Api {
   private base = '/api/v1';
@@ -155,6 +170,21 @@ export class Api {
 
   revokeDevice(id: string) {
     return this.request('POST', `/devices/${id}/revoke`);
+  }
+
+  /** Rangos de Have I Been Pwned (solo prefijos de 5 caracteres del SHA-1). */
+  breachRanges(prefixes: string[]) {
+    return this.request<{ ranges: Record<string, string> }>('POST', '/breaches/ranges', { prefixes });
+  }
+
+  /** Sitios con filtraciones conocidas (lista pública completa de HIBP). */
+  breachedSites() {
+    return this.request<{ sites: BreachedSite[] }>('GET', '/breaches/sites');
+  }
+
+  /** Íconos oficiales de sitios (el servidor los descarga; null = el sitio no tiene). */
+  favicons(domains: string[]) {
+    return this.request<{ icons: Record<string, { mime: string; data: string; kind: 'touch' | 'icon'; size: number } | null> }>('POST', '/icons/favicons', { domains });
   }
 
   audit() {

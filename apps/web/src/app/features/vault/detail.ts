@@ -14,6 +14,7 @@ import { VaultStore } from '../../core/vault.store';
 import { Avatar } from '../../ui/avatar';
 import { CardVisual } from '../../ui/card-visual';
 import { Icon } from '../../ui/icon';
+import { IconPicker, iconStyleLabel, type IconChoice } from '../../ui/icon-picker';
 import { QrCode } from '../../ui/qr-code';
 import { SecretRow } from '../../ui/secret-row';
 import { Sheet } from '../../ui/sheet';
@@ -33,7 +34,7 @@ interface QuickAction {
 @Component({
   selector: 'km-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Avatar, CardVisual, Icon, QrCode, SecretRow, StrengthMeter, TotpCode, Sheet],
+  imports: [RouterLink, Avatar, CardVisual, Icon, IconPicker, QrCode, SecretRow, StrengthMeter, TotpCode, Sheet],
   templateUrl: './detail.html',
   styleUrl: './detail.scss',
 })
@@ -180,6 +181,22 @@ export class Detail {
   protected readonly showDoc = signal(false);
   protected readonly scrolled = signal(false);
   protected readonly confirmDelete = signal(false);
+
+  // Selector de ícono --------------------------------------------------------
+  protected readonly iconPicker = signal(false);
+  protected openIconPicker(): void {
+    this.menu.set(false);
+    if (this.entry()) this.iconPicker.set(true);
+  }
+
+  protected async setIconStyle(v: IconChoice): Promise<void> {
+    const e = this.entry();
+    if (!e || (e.iconStyle ?? 'auto') === v) return;
+    const { iconStyle: _, ...rest } = e;
+    await this.store.save((v === 'auto' ? rest : { ...rest, iconStyle: v }) as Entry);
+  }
+
+  protected readonly iconStyleLabel = iconStyleLabel;
   protected readonly showHistory = signal(false);
   protected readonly revealCard = signal(false);
   protected readonly previews = signal<Record<string, string>>({});

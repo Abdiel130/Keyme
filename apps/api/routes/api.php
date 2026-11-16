@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BreachController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\IconController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Middleware\TouchDevice;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +36,10 @@ Route::prefix('v1')->group(function () {
         Route::patch('devices/{device}', [DeviceController::class, 'update']);
         Route::post('devices/{device}/revoke', [DeviceController::class, 'revoke']);
         Route::get('audit', [DeviceController::class, 'audit']);
+
+        Route::post('breaches/ranges', [BreachController::class, 'ranges'])->middleware('throttle:breaches');
+        Route::get('breaches/sites', [BreachController::class, 'sites'])->middleware('throttle:breaches');
+        Route::post('icons/favicons', [IconController::class, 'favicons'])->middleware('throttle:icons');
 
         Route::middleware('throttle:auth')->group(function () {
             Route::post('account/rekey', [AccountController::class, 'rekey']);

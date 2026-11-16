@@ -95,10 +95,10 @@ Cada dispositivo nuevo pide solo la contraseña maestra. El token de instalació
 - **Multicuenta:** en *Todo* las cuentas del mismo servicio se juntan en un grupo (Google · 3 cuentas, BBVA · 2 elementos). Se activa o desactiva desde el menú de orden de la lista. La ficha de cada cuenta lista las demás cuentas de ese servicio y tiene *Agregar otra cuenta*, que copia sitios y apps y deja las credenciales vacías.
 - **Personas:** en *Ajustes › Personas* das de alta a quien le guardas cuentas (por ejemplo, tu abuelita). Sus cuentas llevan su nombre en la lista, en la búsqueda y en *Salud*, y se filtran con su chip arriba de la lista. Si la quitas, sus cuentas pasan a ser tuyas.
 - **Banca en línea junto a la tarjeta:** la tarjeta tiene la pestaña *Banca en línea* con el usuario y la contraseña de la app del banco. Se guardan como un login vinculado, así conservan 2FA, historial y revisión de *Salud*.
-- **Logos de servicios:** unos 200 logos (Google, Netflix, Nu…) empaquetados en la app con `npm run brands -w @keyme/web` desde simple-icons; no se piden favicons a terceros.
+- **Logos de servicios:** primero los ~330 logos empaquetados en la app (`npm run brands -w @keyme/web`, de simple-icons); para marcas sin logo empaquetado, el ícono oficial del sitio, que descarga tu servidor (el navegador nunca habla con los sitios del vault), se descarta si sale borroso y se guarda cifrado; luego el catálogo completo de simple-icons, buscado por coincidencia de dominio o nombre; al final, el monograma con el color de la marca. En Ajustes → Apariencia, «Actualizar íconos» vuelve a elegirlos y baja los que falten.
 - **Cartera:** tarjetas apiladas que se voltean, copia de número y vencimiento con un toque, marca de CVV dinámico y botón para abrir la app del banco (en Android).
 - **Generador:** contraseñas aleatorias o frases en español, con reglas por sitio (por ejemplo, "sin símbolos" o "máximo 16").
-- **Salud del vault:** contraseñas débiles (zxcvbn), repetidas y antiguas, revisión de filtraciones en Have I Been Pwned con k-anonymity y una puntuación por espacio.
+- **Salud del vault:** contraseñas débiles (zxcvbn), repetidas y antiguas, revisión de filtraciones en Have I Been Pwned con k-anonymity (el resultado se guarda cifrado en el dispositivo), detalle por elemento con las filtraciones públicas de su sitio y una puntuación por espacio.
 - **2FA:** códigos TOTP en vivo, lectura de QR desde una captura y códigos de recuperación con marca de usados.
 - **Historial:** guarda las contraseñas anteriores y la versión perdedora de cada conflicto de sincronización, para que nunca se pierda una contraseña.
 - **Adjuntos cifrados:** fotos de INE, PDFs y otros archivos.
@@ -193,4 +193,4 @@ Ver [SECURITY.md](SECURITY.md), [docs/security.md](docs/security.md) y [docs/for
 ## Licencia y versión
 
 - Licencia: [MIT](LICENSE).
-- Versión actual: **1.4.0** (Ver [CHANGELOG.md](CHANGELOG.md) para más detalles).
+- Versión actual: **1.5.0** (Ver [CHANGELOG.md](CHANGELOG.md) para más detalles).

@@ -3,7 +3,7 @@ import { strength } from './strength';
 
 export const OLD_AFTER_DAYS = 365;
 
-async function sha1Hex(text: string): Promise<string> {
+export async function sha1Hex(text: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(text));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
 }
@@ -28,7 +28,7 @@ export interface HealthReport {
   score: number;
 }
 
-function passwordOf(e: Entry): string | null {
+export function passwordOf(e: Entry): string | null {
   return e.kind === 'login' || e.kind === 'wifi' ? e.password || null : null;
 }
 
@@ -88,12 +88,21 @@ export function analyze(entries: Entry[], spaces: Space[], pwned: Map<string, nu
   return { issues, checked: withPass.length, weak, reused, old, pwned: pw, bySpace, score: scoreOf(withPass) };
 }
 
+/** Rangos de HIBP por prefijo: "SUFIJO:VECES" por línea. */
+export type RangeFetcher = (prefixes: string[]) => Promise<Record<string, string>>;
+
+const RANGE_BATCH = 50;
+
 /**
  * Have I Been Pwned con k-anonymity: solo salen los primeros 5 caracteres
- * del SHA-1; la comparación del resto se hace aquí.
+ * del SHA-1 (a través de nuestra API); la comparación del resto se hace aquí.
  */
-export async function checkPwned(entries: Entry[], onProgress?: (done: number, total: number) => void): Promise<Map<string, number>> {
-  const out = new Map<string, number>();
+export async function checkPwned(
+  entries: Entry[],
+  fetchRanges: RangeFetcher,
+  onProgress?: (done: number, total: number) => void,
+): Promise<Map<string, { count: number; hash: string }>> {
+  const out = new Map<string, { count: number; hash: string }>();
   const byHash = new Map<string, string[]>();
   for (const e of entries) {
     const p = passwordOf(e);
@@ -104,21 +113,25 @@ export async function checkPwned(entries: Entry[], onProgress?: (done: number, t
   const prefixes = new Map<string, string[]>();
   for (const h of byHash.keys()) prefixes.set(h.slice(0, 5), [...(prefixes.get(h.slice(0, 5)) ?? []), h]);
 
+  const all = [...prefixes.keys()];
   let done = 0;
-  for (const [prefix, hashes] of prefixes) {
-    const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, { headers: { 'Add-Padding': 'true' }, referrerPolicy: 'no-referrer', cache: 'no-store' });
-    if (!res.ok) throw new Error(`HIBP respondió ${res.status}`);
-    const text = await res.text();
-    const counts = new Map<string, number>();
-    for (const line of text.split('\n')) {
-      const [suffix, count] = line.trim().split(':');
-      if (suffix) counts.set(prefix + suffix.toUpperCase(), parseInt(count, 10));
+  onProgress?.(0, all.length);
+  for (let i = 0; i < all.length; i += RANGE_BATCH) {
+    const chunk = all.slice(i, i + RANGE_BATCH);
+    const ranges = await fetchRanges(chunk);
+    for (const prefix of chunk) {
+      const counts = new Map<string, number>();
+      for (const line of (ranges[prefix] ?? '').split('\n')) {
+        const [suffix, count] = line.trim().split(':');
+        if (suffix) counts.set(prefix + suffix.toUpperCase(), parseInt(count, 10));
+      }
+      for (const h of prefixes.get(prefix)!) {
+        const c = counts.get(h);
+        if (c) for (const id of byHash.get(h)!) out.set(id, { count: c, hash: h });
+      }
     }
-    for (const h of hashes) {
-      const c = counts.get(h);
-      if (c) for (const id of byHash.get(h)!) out.set(id, c);
-    }
-    onProgress?.(++done, prefixes.size);
+    done += chunk.length;
+    onProgress?.(done, all.length);
   }
   return out;
 }

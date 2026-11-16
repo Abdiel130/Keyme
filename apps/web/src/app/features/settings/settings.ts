@@ -9,6 +9,7 @@ import { downloadEmergencyKit } from '../../core/emergency-kit';
 import { dedupeKey, detectFormat, importBitwarden, importChromeCsv, importSafeInCloud, type ImportResult } from '../../core/importers';
 import { strength } from '../../core/strength';
 import { APP_VERSION, AppUpdates } from '../../core/app-updates';
+import { Icons } from '../../core/icons';
 import { Toasts } from '../../core/toasts';
 import { VaultStore, defaultDeviceName } from '../../core/vault.store';
 import { isAndroid, prfSupported, registerPrf, unlockMethod } from '../../core/webauthn';
@@ -44,6 +45,7 @@ export class SettingsPage implements OnInit {
   protected readonly version = APP_VERSION;
   protected updates = inject(AppUpdates);
   protected installer = inject(InstallPrompt);
+  protected iconStore = inject(Icons);
 
   // Huella / Windows Hello / passkey
   protected readonly method = unlockMethod();
@@ -442,5 +444,12 @@ export class SettingsPage implements OnInit {
 
   protected async forget(): Promise<void> {
     await this.store.forget();
+  }
+
+  protected async refreshIcons(): Promise<void> {
+    const r = await this.iconStore.refresh(true);
+    const got = r.favicons + r.logos;
+    if (r.failed) this.toasts.show('No se pudo conectar con el servidor para bajar íconos', 'error');
+    else this.toasts.show(got ? `${got} ícono(s) nuevo(s)` : 'Los íconos ya están al día', 'ok');
   }
 }

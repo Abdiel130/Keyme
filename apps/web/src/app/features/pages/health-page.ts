@@ -1,21 +1,30 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { subtitle, type Entry } from '@keyme/models';
-import { analyze, checkPwned, type HealthIssue } from '../../core/health';
+import { ApiError } from '../../core/api';
+import { Breaches } from '../../core/breaches';
+import { analyze, type HealthIssue } from '../../core/health';
 import { Toasts } from '../../core/toasts';
 import { UiState } from '../../core/ui-state';
 import { VaultStore } from '../../core/vault.store';
 import { Avatar } from '../../ui/avatar';
 import { Icon } from '../../ui/icon';
 
-type Tab = 'all' | 'pwned' | 'weak' | 'reused' | 'old';
+export type Tab = 'all' | 'pwned' | 'weak' | 'reused' | 'old';
+
+/**
+ * Posición de la lista al abrir un detalle. Al volver (flecha del detalle o
+ * "atrás" del sistema) la lista sigue donde estaba en vez de subir al inicio.
+ */
+export const healthNav = { top: 0, fromList: false };
+const TABS: Tab[] = ['all', 'pwned', 'weak', 'reused', 'old'];
 
 @Component({
   selector: 'km-health',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Avatar, Icon],
   template: `
-    <div class="page">
+    <div class="page" #page (scroll)="healthNav.top = page.scrollTop">
       <div class="page-head">
         <div><p class="eyebrow">Diagnóstico</p><h1>Salud del vault</h1><p class="muted">Se analiza en tu dispositivo. Nada sale de aquí, salvo 5 caracteres de un hash si revisas filtraciones.</p></div>
       </div>
@@ -29,10 +38,10 @@ type Tab = 'all' | 'pwned' | 'weak' | 'reused' | 'old';
           <div class="num"><b>{{ report().score }}</b><span>de 100</span></div>
         </div>
         <div class="stats">
-          <button class="stat panel" [class.on]="tab() === 'pwned'" (click)="tab.set('pwned')"><b class="danger">{{ pwnedChecked() ? report().pwned : '?' }}</b><span>Filtradas</span></button>
-          <button class="stat panel" [class.on]="tab() === 'weak'" (click)="tab.set('weak')"><b class="warn">{{ report().weak }}</b><span>Débiles</span></button>
-          <button class="stat panel" [class.on]="tab() === 'reused'" (click)="tab.set('reused')"><b class="warn">{{ report().reused }}</b><span>Repetidas</span></button>
-          <button class="stat panel" [class.on]="tab() === 'old'" (click)="tab.set('old')"><b>{{ report().old }}</b><span>Más de 1 año</span></button>
+          <button class="stat panel" [class.on]="tab() === 'pwned'" (click)="setTab('pwned')"><b class="danger">{{ pwnedChecked() ? report().pwned : '?' }}</b><span>Filtradas</span></button>
+          <button class="stat panel" [class.on]="tab() === 'weak'" (click)="setTab('weak')"><b class="warn">{{ report().weak }}</b><span>Débiles</span></button>
+          <button class="stat panel" [class.on]="tab() === 'reused'" (click)="setTab('reused')"><b class="warn">{{ report().reused }}</b><span>Repetidas</span></button>
+          <button class="stat panel" [class.on]="tab() === 'old'" (click)="setTab('old')"><b>{{ report().old }}</b><span>Más de 1 año</span></button>
         </div>
       </div>
 
@@ -40,10 +49,11 @@ type Tab = 'all' | 'pwned' | 'weak' | 'reused' | 'old';
         <km-icon name="shield" [size]="22" />
         <div class="grow">
           <b>Revisar filtraciones con Have I Been Pwned</b>
-          <p class="faint small">k-anonymity: se envían solo los primeros 5 caracteres del SHA-1 de cada contraseña; la comparación se hace aquí. Requiere internet.</p>
+          <p class="faint small">k-anonymity: se envían solo los primeros 5 caracteres del SHA-1 de cada contraseña; la comparación se hace aquí. Requiere conexión con tu servidor.</p>
+          @if (breaches.checkedAt(); as at) { <p class="faint tiny">Última revisión: {{ when(at) }}. El resultado se guarda cifrado en este dispositivo.</p> }
         </div>
-        <button class="btn" [class.primary]="!pwnedChecked()" (click)="runHibp()" [disabled]="checking()">
-          @if (checking()) { <span class="spinner"></span> {{ progress() }} } @else { {{ pwnedChecked() ? 'Revisar otra vez' : 'Revisar ahora' }} }
+        <button class="btn" [class.primary]="!pwnedChecked()" (click)="runHibp()" [disabled]="breaches.checking()">
+          @if (breaches.checking()) { <span class="spinner"></span> {{ breaches.progress() }} } @else { {{ pwnedChecked() ? 'Revisar otra vez' : 'Revisar ahora' }} }
         </button>
       </div>
 
@@ -62,11 +72,11 @@ type Tab = 'all' | 'pwned' | 'weak' | 'reused' | 'old';
 
       <h3 class="list-h">
         <span>{{ titles[tab()] }}</span>
-        @if (tab() !== 'all') { <button class="btn sm ghost" (click)="tab.set('all')">Ver todo</button> }
+        @if (tab() !== 'all') { <button class="btn sm ghost" (click)="setTab('all')">Ver todo</button> }
       </h3>
       <div class="issues">
         @for (i of list(); track i.entry.id) {
-          <a class="issue panel" [routerLink]="['/item', i.entry.id, 'edit']">
+          <a class="issue panel" [routerLink]="['/health', i.entry.id]" [queryParams]="{ tab: tab() }" (click)="healthNav.fromList = true">
             <km-avatar [entry]="i.entry" [size]="34" [ring]="ui.spaceById().get(i.entry.spaceId ?? '')?.color ?? null" />
             <span class="grow"><b>{{ i.entry.title }}</b><span class="faint small">{{ subtitle(i.entry) }}@if (ownerOf(i.entry); as o) { · de {{ o }}}</span></span>
             <span class="tags">
@@ -75,7 +85,7 @@ type Tab = 'all' | 'pwned' | 'weak' | 'reused' | 'old';
               @if (i.reusedWith) { <span class="chip warn">Repetida ×{{ i.reusedWith + 1 }}</span> }
               @if (i.ageDays) { <span class="chip">{{ (i.ageDays / 365).toFixed(1) }} años</span> }
             </span>
-            <span class="fix">Cambiar <km-icon name="chevron" [size]="14" /></span>
+            <span class="fix">Detalles <km-icon name="chevron" [size]="14" /></span>
           </a>
         } @empty {
           <div class="empty"><km-icon name="check" [size]="30" /><h2>Todo en orden</h2><p>No hay problemas en esta categoría.</p></div>
@@ -117,21 +127,46 @@ export class HealthPage {
   private store = inject(VaultStore);
   protected ui = inject(UiState);
   private toasts = inject(Toasts);
+  protected breaches = inject(Breaches);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
   protected readonly subtitle = subtitle;
 
   protected ownerOf(e: Entry): string {
     return e.ownerId ? this.ui.personById().get(e.ownerId)?.name ?? '' : '';
   }
-  protected readonly tab = signal<Tab>('all');
-  protected readonly pwned = signal<Map<string, number>>(new Map());
-  protected readonly pwnedChecked = signal(false);
-  protected readonly checking = signal(false);
-  protected readonly progress = signal('');
+  protected readonly healthNav = healthNav;
+  private readonly page = viewChild.required<ElementRef<HTMLElement>>('page');
+  protected readonly tab = signal<Tab>(this.initialTab());
+
+  constructor() {
+    afterNextRender(() => {
+      if (healthNav.fromList) this.page().nativeElement.scrollTop = healthNav.top;
+      else healthNav.top = 0;
+      healthNav.fromList = false;
+    });
+  }
+  protected readonly pwnedChecked = computed(() => !!this.breaches.checkedAt());
+
+  private initialTab(): Tab {
+    const t = this.route.snapshot.queryParamMap.get('tab') as Tab;
+    return TABS.includes(t) ? t : 'all';
+  }
+
+  /** La pestaña vive en la URL: al volver del detalle sigue donde estaba. */
+  protected setTab(t: Tab): void {
+    this.tab.set(t);
+    void this.router.navigate([], { queryParams: { tab: t === 'all' ? null : t }, replaceUrl: true });
+  }
+
+  protected when(d: Date): string {
+    return d.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+  }
   protected readonly titles: Record<Tab, string> = {
     all: 'Elementos por mejorar', pwned: 'Aparecen en filtraciones', weak: 'Contraseñas débiles', reused: 'Contraseñas repetidas', old: 'Sin cambiar en más de un año',
   };
 
-  protected readonly report = computed(() => analyze(this.store.entries(), this.store.spaces(), this.pwned()));
+  protected readonly report = computed(() => analyze(this.store.entries(), this.store.spaces(), this.breaches.pwned()));
   protected readonly grade = computed(() => (this.report().score >= 80 ? 'high' : this.report().score >= 50 ? 'mid' : 'low'));
   protected readonly list = computed<HealthIssue[]>(() => {
     const all = [...this.report().issues.values()];
@@ -142,22 +177,23 @@ export class HealthPage {
   });
 
   protected async runHibp(): Promise<void> {
-    this.checking.set(true);
     try {
-      const res = await checkPwned(this.store.entries(), (d, t) => this.progress.set(`${d}/${t}`));
-      this.pwned.set(res);
-      this.pwnedChecked.set(true);
-      this.toasts.show(res.size ? `${res.size} contraseña(s) aparecen en filtraciones` : 'Ninguna contraseña aparece en filtraciones', res.size ? 'error' : 'ok');
-      if (res.size) this.tab.set('pwned');
-    } catch {
-      this.toasts.show('No se pudo consultar Have I Been Pwned (¿sin internet?)', 'error');
-    } finally {
-      this.checking.set(false);
-      this.progress.set('');
+      const n = await this.breaches.check();
+      this.toasts.show(n ? `${n} contraseña(s) aparecen en filtraciones` : 'Ninguna contraseña aparece en filtraciones', n ? 'error' : 'ok');
+      if (n) this.setTab('pwned');
+    } catch (e) {
+      this.toasts.show(hibpError(e), 'error');
     }
   }
 
   protected fmt(n: number): string {
     return n.toLocaleString('es-MX');
   }
+}
+
+export function hibpError(e: unknown): string {
+  if (!(e instanceof ApiError)) return 'No se pudo revisar filtraciones';
+  if (e.code === 'offline') return 'Sin conexión con el servidor de Keyme';
+  if (e.status === 429) return 'Demasiadas revisiones seguidas. Espera un minuto.';
+  return (e.body as { message?: string } | null)?.message ?? 'No se pudo consultar Have I Been Pwned';
 }

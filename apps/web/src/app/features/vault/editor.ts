@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { ApplicationRef, ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -38,6 +39,7 @@ export class Editor {
   protected store = inject(VaultStore);
   protected ui = inject(UiState);
   private router = inject(Router);
+  private location = inject(Location);
   private toasts = inject(Toasts);
   protected brands = inject(Brands);
   private appRef = inject(ApplicationRef);
@@ -52,6 +54,10 @@ export class Editor {
   readonly like = input<string>();
   /** ?tab=bank: abrir la tarjeta en la pestaña de banca en línea. */
   readonly tab = input<string>();
+  /** ?from=health: se abrió desde Salud; al guardar o cancelar se vuelve ahí. */
+  readonly from = input<string>();
+  /** ?htab=pwned: pestaña de Salud a la que se regresa. */
+  readonly htab = input<string>();
 
   // Borrador mutable: los campos se enlazan con ngModel y `touch()` notifica.
   protected draft!: Entry;
@@ -533,7 +539,7 @@ export class Editor {
       for (const a of this.original) if (!kept.has(a.id)) await this.store.deleteFile(a.id);
       this.added = [];
       this.toasts.show((this.isNew() ? 'Guardado' : 'Cambios guardados') + (shared ? ` · banca en línea vinculada a ${shared === 1 ? 'otra tarjeta' : `${shared} tarjetas más`}` : ''));
-      void this.router.navigate(['/item', saved.id], { replaceUrl: true });
+      if (!this.backToHealth(saved.id)) void this.router.navigate(['/item', saved.id], { replaceUrl: true });
     } finally {
       this.saving.set(false);
     }
@@ -553,7 +559,15 @@ export class Editor {
     for (const id of this.added) await this.store.deleteFile(id);
     this.added = [];
     if (this.isNew()) void this.router.navigate(['/']);
-    else void this.router.navigate(['/item', this.draft.id]);
+    else if (!this.backToHealth(this.draft.id)) void this.router.navigate(['/item', this.draft.id]);
+  }
+
+  /** Abierto desde el detalle de Salud: se vuelve a él con el historial (sin duplicarlo). */
+  private backToHealth(id: string): boolean {
+    if (this.from() !== 'health') return false;
+    if (history.length > 1) this.location.back();
+    else void this.router.navigate(['/health', id], { queryParams: { tab: this.htab() || null }, replaceUrl: true });
+    return true;
   }
 
   protected onKey(e: KeyboardEvent): void {

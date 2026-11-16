@@ -14,6 +14,8 @@ function depth(s: ActivatedRouteSnapshot): { level: number; tab: string } {
   if (!path) return { level: 0, tab: 'vault' };
   if (path.startsWith('item/:id/') || path.startsWith('new/')) return { level: 2, tab: 'vault' };
   if (path.startsWith('item/')) return { level: 1, tab: 'vault' };
+  // Detalle de Salud: avanza desde la lista y vuelve hacia ella.
+  if (path === 'health/:id') return { level: 2, tab: 'health' };
   return { level: 1, tab: path };
 }
 

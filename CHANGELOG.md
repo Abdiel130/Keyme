@@ -7,6 +7,53 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-16
+
+Casi todas tus cuentas ya tienen su logo: además de los logos de la app se
+busca en un catálogo de miles de marcas y, si no está, tu servidor baja el
+ícono oficial del sitio (Disney+, BBVA, Banamex…). Puedes elegir a mano el
+ícono de cada cuenta. La revisión de filtraciones ya funciona desde la app,
+guarda su resultado y cada cuenta tiene un detalle con qué contraseña es,
+qué tan expuesta está y qué filtraciones sufrió su sitio.
+
+### Added
+- **Catálogo completo de logos**: si la app no trae el logo de una marca, lo
+  busca entre unos 3,500 logos por el dominio o el nombre de la cuenta. Tu
+  servidor los sirve y solo se bajan los que usas.
+- **Ícono oficial del sitio**: para las marcas que no están en ningún
+  catálogo, tu servidor descarga el ícono del propio sitio, elige el más
+  nítido y descarta los que se verían borrosos. Tu navegador nunca contacta
+  esos sitios y los íconos se guardan cifrados en tu dispositivo.
+- **Botón "Actualizar íconos"** en Ajustes → Apariencia: vuelve a elegir y
+  descargar los íconos de todas tus cuentas. Además se completan solos al
+  desbloquear y cada vez que vuelve la conexión con el servidor.
+- **Elegir el ícono de una cuenta**: desde el menú ⋯ de la ficha escoges
+  entre Automático, Librería, Oficial o Simple, viendo cómo queda cada uno.
+  La elección se sincroniza a tus dispositivos.
+- **Más de 130 marcas nuevas** en los logos de la app, entre ellas
+  TeamViewer, AnyDesk, Paramount+, Apple TV, VPNs, aerolíneas, paqueterías y
+  herramientas de trabajo.
+- **Detalle de cada problema en Salud**: al tocar una cuenta ves su
+  contraseña, cuántas veces apareció en filtraciones y por qué es un riesgo,
+  si es débil o se repite en otras cuentas, y las filtraciones públicas de
+  su sitio con fecha, cuentas afectadas y datos expuestos. Te avisa si la
+  filtración pasó después de tu último cambio y desde ahí la cambias.
+
+### Changed
+- **Resultado de filtraciones guardado**: ya no se pierde al salir de Salud.
+  Se guarda cifrado en el dispositivo con la fecha de la revisión, y el
+  aviso desaparece solo cuando cambias esa contraseña.
+- **Volver a Salud donde estabas**: al regresar del detalle, con la flecha o
+  con el atrás del sistema, la lista sigue en la misma pestaña y posición.
+- **Disney+, Paramount+ y similares** muestran "D+" en lugar de solo "D"
+  cuando no hay logo.
+
+### Fixed
+- **Revisión de filtraciones**: ya no falla con "No se pudo conectar". Ahora
+  pasa por tu servidor en pocas consultas en lugar de una por contraseña, y
+  el mensaje de error dice la causa real. Sigue enviando solo los primeros 5
+  caracteres del hash de cada contraseña.
+
 ## [1.4.0] - 2026-11-16
 
 Las cuentas que ya casi no usas pero no quieres borrar ahora tienen su

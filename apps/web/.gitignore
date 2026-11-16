@@ -42,3 +42,6 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Catálogo completo de simple-icons (scripts/brand-catalog.mjs)
+/public/brands

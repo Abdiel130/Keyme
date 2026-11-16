@@ -281,6 +281,18 @@
       <button [class.on]="s().theme === 'light'" (click)="save({ theme: 'light' })"><km-icon name="sun" [size]="14" /> Claro</button>
       <button [class.on]="s().theme === 'system'" (click)="save({ theme: 'system' })">Sistema</button>
     </div>
+    <div class="panel group">
+      <div class="opt">
+        <div class="ot"><b>Íconos de sitios</b>
+          <span class="faint small">
+            Tu servidor descarga el ícono oficial de cada sitio y el logo que falte del catálogo. Se guardan cifrados y se completan solos al conectarse.
+          </span>
+        </div>
+        <button class="btn sm" (click)="refreshIcons()" [disabled]="iconStore.busy()">
+          @if (iconStore.busy()) { <span class="spinner"></span> } @else { <km-icon name="sync" [size]="14" /> } Actualizar íconos
+        </button>
+      </div>
+    </div>
   </section>
 
   <!-- App -->

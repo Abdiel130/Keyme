@@ -106,7 +106,7 @@
         @if (genOpen()) { <ng-container *ngTemplateOutlet="gen" /> }
         <div class="field">
           <label for="url0">Sitio web</label>
-          <input id="url0" name="url0" [ngModel]="login.urls[0]?.value ?? ''" (ngModelChange)="setFirstUrl($event)" (blur)="login.urls[0] && urlBlur(login.urls[0])" placeholder="accounts.google.com" spellcheck="false" inputmode="url" />
+          <input id="url0" name="url0" [ngModel]="login.urls[0]?.value ?? ''" (ngModelChange)="setFirstUrl($event)" (blur)="login.urls[0] && urlBlur(login.urls[0])" placeholder="accounts.google.com" spellcheck="false" inputmode="url" autocapitalize="none" autocorrect="off" />
         </div>
 
         @if (showTotp() || d.totp) {
@@ -135,13 +135,18 @@
       </div>
       @if (cardTab() === 'bank') {
         <section class="sheet-card rise">
-          <p class="muted small lead-in">El usuario y la contraseña de la app o el sitio del banco. Se guardan como un login aparte, vinculado a esta tarjeta, y en la lista se ven juntos.</p>
+          <p class="muted small lead-in">El usuario y la contraseña de la app o el sitio del banco. Se guardan como un login aparte y lo comparten todas tus tarjetas de {{ d.bank || 'este banco' }}: débito, crédito y virtuales.</p>
           @if (bankLinked(); as l) {
             <div class="linked-login">
               <km-avatar [entry]="l" [size]="40" />
               <span class="grow"><b>{{ l.title }}</b><span class="faint small">{{ l.username || 'Sin usuario' }}</span></span>
               <button type="button" class="btn sm ghost" (click)="d.loginId = null; touch()"><km-icon name="x" [size]="15" /> Desvincular</button>
             </div>
+            @if (siblingCards().length) {
+              <p class="hint shared-with"><km-icon name="card" [size]="13" /> También la usan:
+                @for (s of siblingCards(); track s.id; let last = $last) { {{ s.title }}{{ s.number ? ' ' + s.number.slice(-4) : '' }}{{ last ? '' : ',' }} }
+              </p>
+            }
           } @else {
             <div class="seg how">
               <button type="button" [class.on]="bankMode() === 'new'" (click)="bankMode.set('new')">Capturar acceso</button>
@@ -181,6 +186,15 @@
           }
         </div>
         <div class="field">
+          <label>Tipo</label>
+          <div class="doc-types card-types">
+            @for (t of cardTypes; track t[0]) {
+              <button type="button" class="dchip" [class.on]="d.cardType === t[0]" [attr.aria-pressed]="d.cardType === t[0]" (click)="setCardType(t[0])">{{ t[1] }}</button>
+            }
+            <button type="button" class="dchip" [class.on]="d.virtual" [attr.aria-pressed]="!!d.virtual" (click)="d.virtual = !d.virtual; touch()"><km-icon name="phone" [size]="14" /> Virtual</button>
+          </div>
+        </div>
+        <div class="field">
           <label for="num">Número de tarjeta @if (d.network !== 'other') { <span class="chip accent">{{ d.network }}</span> }</label>
           <input id="num" name="num" class="mono big-in" inputmode="numeric" [ngModel]="cardFormatted()" (ngModelChange)="onCardNumber($event)" (focus)="cardBack.set(false)" placeholder="0000 0000 0000 0000" />
           @if (cardInvalid()) { <span class="hint bad">El número no pasa la verificación (Luhn). Revísalo.</span> }
@@ -194,7 +208,7 @@
         </div>
         <div class="grid-2">
           <div class="field"><label for="hol">Titular</label><input id="hol" name="hol" [(ngModel)]="d.holder" (ngModelChange)="touch()" autocapitalize="characters" /></div>
-          <div class="field"><label for="bank">Banco</label><input id="bank" name="bank" [(ngModel)]="d.bank" (ngModelChange)="touch()" /></div>
+          <div class="field"><label for="bank">Banco</label><input id="bank" name="bank" [(ngModel)]="d.bank" (ngModelChange)="touch()" (blur)="linkSharedBank(); touch()" /></div>
         </div>
         <label class="check"><input type="checkbox" name="dyn" [(ngModel)]="d.dynamicCvv" (ngModelChange)="touch()" /> Esta tarjeta usa CVV dinámico</label>
         @if (d.dynamicCvv) {
@@ -205,16 +219,26 @@
               <datalist id="bank-apps">@for (b of bankApps; track b.pkg) { <option [value]="b.pkg">{{ b.name }}</option> }</datalist>
               <span class="hint">Lo ves en Play Store: play.google.com/store/apps/details?id=<b>paquete</b></span>
             </div>
-            <div class="field"><label for="dl">Enlace directo al CVV (opcional)</label><input id="dl" name="dl" class="mono" [(ngModel)]="d.bankAppUrl" (ngModelChange)="touch()" placeholder="bbva://…" spellcheck="false" /></div>
+            <div class="field"><label for="dl">Enlace directo al CVV (opcional)</label><input id="dl" name="dl" class="mono" [(ngModel)]="d.bankAppUrl" (ngModelChange)="touch()" placeholder="bbva://…" spellcheck="false" inputmode="url" autocapitalize="none" autocorrect="off" /></div>
           </div>
         }
         <div class="field">
           <label>Color de la tarjeta</label>
           <div class="hues">
             @for (h of hues; track h) {
-              <button type="button" class="hue" [style.--hh]="h" [class.on]="d.hue === h" (click)="d.hue = h; touch()" [attr.aria-label]="'Tono ' + h"></button>
+              <button type="button" class="hue" [style.--hh]="h" [class.on]="!d.color && d.hue === h" (click)="setHue(h)" [attr.aria-label]="'Tono ' + h"></button>
             }
-            <input name="hue" type="range" min="0" max="359" [(ngModel)]="d.hue" (ngModelChange)="touch()" aria-label="Tono personalizado" />
+            <input name="hue" type="range" min="0" max="359" [ngModel]="d.hue" (ngModelChange)="setHue(+$event)" aria-label="Tono personalizado" />
+          </div>
+          <div class="hues solids">
+            @for (s of solids; track s.hex) {
+              <button type="button" class="hue solid" [style.--sc]="s.hex" [class.on]="d.color === s.hex" (click)="setColor(s.hex)" [title]="s.name" [attr.aria-label]="s.name"></button>
+            }
+            @let custom = !!d.color && !isSolid(d.color);
+            <label class="hue solid pick" [class.on]="custom" [style.--sc]="custom ? d.color : null" title="Otro color">
+              <km-icon name="plus" [size]="15" />
+              <input type="color" name="color" [ngModel]="d.color || '#141414'" (ngModelChange)="setColor($event)" aria-label="Otro color" />
+            </label>
           </div>
         </div>
       </section>
@@ -305,7 +329,7 @@
           <h3>Sitios y apps <span class="faint small">El autocompletado solo sugiere por coincidencia exacta</span></h3>
           @for (u of login.urls; track $index; let i = $index) {
             <div class="url-row">
-              <input class="input" [name]="'url' + i" [(ngModel)]="u.value" (blur)="urlBlur(u)" placeholder="https://accounts.google.com" spellcheck="false" />
+              <input class="input" [name]="'url' + i" [(ngModel)]="u.value" (blur)="urlBlur(u)" placeholder="https://accounts.google.com" spellcheck="false" inputmode="url" autocapitalize="none" autocorrect="off" />
               <select class="input sel" [name]="'m' + i" [(ngModel)]="u.match" (ngModelChange)="touch()">
                 <option value="base">Dominio</option>
                 <option value="host">Host exacto</option>

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { DOC_LABELS, digitsOnly, type CardEntry, type DocumentEntry, type LoginEntry } from '@keyme/models';
+import { DOC_LABELS, digitsOnly, walletOrder, type CardEntry, type DocumentEntry, type LoginEntry } from '@keyme/models';
 import { Clipboard } from '../../core/clipboard.service';
 import { Toasts } from '../../core/toasts';
 import { VaultStore } from '../../core/vault.store';
@@ -145,10 +145,8 @@ export class Wallet {
   protected readonly reveal = signal(false);
   protected readonly flip = signal(false);
 
-  protected readonly cards = computed(() =>
-    this.store.entries().filter((e): e is CardEntry => e.kind === 'card')
-      .sort((a, b) => Number(b.favorite) - Number(a.favorite) || (b.usage?.count ?? 0) - (a.usage?.count ?? 0)),
-  );
+  /** Más usadas primero, pero las tarjetas de un mismo banco quedan juntas. */
+  protected readonly cards = computed(() => walletOrder(this.store.entries()));
   protected readonly openCard = computed(() => this.cards().find((c) => c.id === this.open()) ?? null);
   protected readonly docs = computed(() => this.store.entries().filter((e): e is DocumentEntry => e.kind === 'document'));
 

@@ -7,6 +7,52 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-16
+
+Las tarjetas ahora se manejan como en la vida real: un mismo banco te da
+débito, crédito y virtuales, y todas comparten una sola banca en línea que
+capturas una vez. Dentro de una tarjeta pasas a la siguiente deslizando, sin
+volver a la lista, y la información cambia al instante junto con ella.
+Además puedes vestir cada tarjeta del color que tiene en tu cartera, negra,
+plateada o dorada, y al escribir el sitio de una cuenta el teclado ya no
+arranca en mayúscula.
+
+### Added
+- **Varias tarjetas por banco**: marca cada tarjeta como débito, crédito o
+  prepago, y como virtual si solo vive en la app del banco. El tipo se ve en
+  la tarjeta, en la lista y en la ficha, y también sirve para buscarla.
+- **Una banca en línea para todo el banco**: al agregar otra tarjeta del
+  mismo banco toma sola la banca en línea que ya tienen las demás, y si la
+  cambias en una, las otras se actualizan. La ficha te dice con qué tarjetas
+  la compartes y desde la banca en línea agregas una tarjeta nueva ya
+  vinculada.
+- **Carrusel de tarjetas**: dentro de la ficha de una tarjeta deslizas a los
+  lados para pasar a la siguiente; las vecinas se asoman para que sepas qué
+  sigue. Los puntos de abajo te llevan directo a una, y en la computadora
+  también hay flechas y funcionan las teclas ← →. "Atrás" te regresa a la
+  lista, no a cada tarjeta que viste.
+- **Colores sólidos para la tarjeta**: además de los tonos, eliges negro,
+  grafito, plata, oro, oro rosa, blanco o cualquier color, y Keyme arma el
+  degradado con el mismo estilo de siempre. En colores claros el texto se
+  oscurece para que se lea bien.
+
+### Changed
+- **La información sigue a la tarjeta**: al deslizar el carrusel el nombre,
+  los botones rápidos y los datos cambian en cuanto la tarjeta llega al
+  centro, con una animación propia, en lugar de tardar un par de segundos.
+  El color de fondo pasa suave al del nuevo banco.
+- **Cartera ordenada por banco**: las tarjetas de un mismo banco quedan
+  juntas en la pila, y el carrusel las recorre en ese mismo orden.
+- **Grupos con tarjetas**: en la lista, el grupo de un banco dice
+  "3 tarjetas y banca en línea" en lugar de "4 elementos".
+
+### Fixed
+- **Sitios web en minúscula**: en Android el campo del sitio de una cuenta y
+  el enlace a la app del banco ya no empiezan con mayúscula. Puedes seguir
+  usando mayúsculas si las necesitas.
+- **Transiciones limpias**: al cambiar de pantalla la que entra ya no se
+  transparenta sobre la que sale.
+
 ## [1.2.0] - 2026-11-05
 
 Keyme estrena cara. Cada cuenta lleva el logo real de su servicio, lo que

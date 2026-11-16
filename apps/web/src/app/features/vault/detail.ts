@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, linkedSignal, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
-  DOC_LABELS, KIND_LABELS, accountLabel, digitsOnly, formatCard, hostOf, isEntry, serviceKey, serviceName, wifiQrPayload,
+  DOC_LABELS, KIND_LABELS, accountLabel, bankSiblings, cardKindLabel, digitsOnly, formatCard, hostOf, isEntry, serviceKey, serviceName, walletOrder, wifiQrPayload,
   type AttachmentRef, type CardEntry, type Entry, type HistoryEntry, type LoginEntry,
 } from '@keyme/models';
 import { Brands } from '../../core/brands';
@@ -46,8 +46,18 @@ export class Detail {
   private brands = inject(Brands);
 
   readonly id = input.required<string>();
+  /** Tarjeta que dejó el carrusel al centro y que la ruta aún no alcanza. */
+  private railDriven: string | null = null;
+  /**
+   * Lo que se muestra: la ruta, salvo que el carrusel vaya adelante. Así la
+   * información cambia junto con la tarjeta y la ruta se pone al día después.
+   */
+  protected readonly currentId = linkedSignal<string, string>({
+    source: this.id,
+    computation: (id, prev) => (prev && prev.value === this.railDriven ? prev.value : id),
+  });
   protected readonly entry = computed(() => {
-    const r = this.store.records().get(this.id());
+    const r = this.store.records().get(this.currentId());
     return r && isEntry(r) ? r : null;
   });
   protected readonly space = computed(() => {
@@ -94,8 +104,22 @@ export class Detail {
     const others = all.filter((x) => x.id !== e.id && x.id !== this.bankLogin()?.id && !this.cards().some((c) => c.id === x.id));
     return { name: serviceName(all), others };
   });
+  /** Tarjetas del mismo banco que comparten esta banca en línea. */
+  protected readonly bankmates = computed(() => {
+    const e = this.entry();
+    return e?.kind === 'card' && e.loginId ? bankSiblings(e, this.store.entries()).filter((c) => c.loginId === e.loginId) : [];
+  });
   protected readonly accountLabel = accountLabel;
+  protected readonly cardKindLabel = cardKindLabel;
   protected readonly cardTab = signal<'card' | 'bank'>('card');
+
+  /** Todas las tarjetas, en el orden de la Cartera, para el carrusel. */
+  protected readonly deck = computed(() => (this.entry()?.kind === 'card' ? walletOrder(this.store.entries()) : []));
+  protected readonly deckIndex = computed(() => this.deck().findIndex((c) => c.id === this.currentId()));
+  private readonly rail = viewChild<ElementRef<HTMLElement>>('rail');
+  private shownRail: HTMLElement | null = null;
+  private settleTimer = 0;
+  private routing = false;
 
   /** Color de la marca para el halo de la cabecera. */
   protected readonly brandColor = computed(() => {
@@ -164,7 +188,21 @@ export class Detail {
 
   constructor() {
     const urls: string[] = [];
-    inject(DestroyRef).onDestroy(() => urls.forEach((u) => URL.revokeObjectURL(u)));
+    inject(DestroyRef).onDestroy(() => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+      clearTimeout(this.settleTimer);
+    });
+    // El carrusel siempre centra la tarjeta abierta; al aparecer, sin animación.
+    effect(() => {
+      const rail = this.rail()?.nativeElement;
+      const i = this.deckIndex();
+      if (!rail || i < 0) return;
+      const fresh = rail !== this.shownRail;
+      this.shownRail = rail;
+      // Si lo movió el dedo, ya está ahí: no pelear con el deslizamiento.
+      if (!fresh && this.currentId() === this.railDriven) return;
+      requestAnimationFrame(() => this.scrollRailTo(i, fresh ? 'instant' : 'smooth'));
+    });
     // Vista previa de imágenes adjuntas (descifradas en memoria).
     effect(async () => {
       const e = this.entry();
@@ -219,6 +257,66 @@ export class Detail {
     this.flashed.set(a.id);
     navigator.vibrate?.(10);
     setTimeout(() => this.flashed() === a.id && this.flashed.set(null), 1400);
+  }
+
+  /** Lleva el carrusel a la tarjeta `i`; al asentarse se abre. */
+  protected goTo(i: number): void {
+    if (i >= 0 && i < this.deck().length) this.scrollRailTo(i, 'smooth');
+  }
+
+  /** La información cambia en cuanto otra tarjeta llega al centro, sin esperar a soltar. */
+  protected onRailScroll(): void {
+    const c = this.deck()[this.railNearest()];
+    if (c && c.id !== this.currentId()) {
+      this.railDriven = c.id;
+      this.currentId.set(c.id);
+      navigator.vibrate?.(6);
+    }
+    clearTimeout(this.settleTimer);
+    this.settleTimer = window.setTimeout(() => void this.settle(), 200);
+  }
+
+  /**
+   * Al soltar, la ruta alcanza a la tarjeta del centro: sin apilar historial
+   * ni transición de pantalla, porque la vista ya cambió.
+   */
+  private async settle(): Promise<void> {
+    const target = this.currentId();
+    if (this.routing) return;
+    if (target === this.id()) {
+      this.railDriven = null;
+      return;
+    }
+    this.routing = true;
+    const root = document.documentElement;
+    root.classList.add('vt-skip');
+    try {
+      await this.router.navigate(['/item', target], { replaceUrl: true });
+    } finally {
+      this.routing = false;
+      root.classList.remove('vt-skip');
+    }
+    void this.settle();
+  }
+
+  private railNearest(): number {
+    const rail = this.rail()?.nativeElement;
+    if (!rail) return -1;
+    const mid = rail.scrollLeft + rail.clientWidth / 2;
+    let best = -1;
+    let dist = Infinity;
+    Array.from(rail.children as HTMLCollectionOf<HTMLElement>).forEach((s, i) => {
+      const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid);
+      if (d < dist) [best, dist] = [i, d];
+    });
+    return best;
+  }
+
+  private scrollRailTo(i: number, behavior: ScrollBehavior): void {
+    const rail = this.rail()?.nativeElement;
+    const slide = rail?.children[i] as HTMLElement | undefined;
+    if (!rail || !slide) return;
+    rail.scrollTo({ left: slide.offsetLeft - (rail.clientWidth - slide.offsetWidth) / 2, behavior });
   }
 
   protected filterBy(f: Filter): void {

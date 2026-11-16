@@ -60,7 +60,8 @@
 /* Paneles ---------------------------------------------------------------- */
 .list-pane { border-right: 1px solid var(--line); min-width: 0; min-height: 0; background: var(--bg-elev); }
 .main-pane { min-width: 0; min-height: 0; position: relative; display: flex; flex-direction: column; background: var(--bg); }
-.outlet { flex: 1; min-height: 0; view-transition-name: km-main; }
+/* Fondo propio: la captura de la pantalla que entra no se transparenta sobre la que sale. */
+.outlet { flex: 1; min-height: 0; view-transition-name: km-main; background: var(--bg); }
 .banner { display: flex; align-items: center; gap: 12px; padding: 12px 18px; font-size: 14px; border-bottom: 1px solid var(--line); span { flex: 1; } }
 .banner.warn { background: var(--warn-soft); color: var(--warn); }
 .banner.info { background: var(--accent-soft); color: var(--accent); }

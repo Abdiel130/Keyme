@@ -86,6 +86,41 @@ describe('modelos', () => {
     Object.assign(c, { title: 'BBVA', number: '4111111111111111' });
     expect(m.accountLabel(c)).toBe('Tarjeta · •••• 1111');
     expect(m.normalizeEntry({ id: 'x', kind: 'login' } as never).ownerId).toBeNull();
+    Object.assign(c, { cardType: 'credit', virtual: true });
+    expect(m.accountLabel(c)).toBe('Crédito virtual · •••• 1111');
+  });
+
+  it('multitarjeta: las tarjetas de un banco comparten la banca en línea', () => {
+    const card = (title: string, bank: string, extra: object = {}) => Object.assign(m.newEntry('card', null), { title, bank, ...extra });
+    const banca = Object.assign(m.newEntry('login', null), { title: 'BBVA · Banca en línea' });
+    const debit = card('BBVA Débito', 'BBVA', { cardType: 'debit', loginId: banca.id });
+    const credit = card('BBVA Azul', 'BBVA', { cardType: 'credit' });
+    const virtual = card('BBVA Virtual', 'bbva', { cardType: 'credit', virtual: true });
+    const abuela = card('BBVA', 'BBVA', { ownerId: 'p1' });
+    const nu = card('Nu', 'Nu');
+    const all = [banca, debit, credit, virtual, abuela, nu];
+    const get = (id: string) => all.find((e) => e.id === id);
+    expect(m.bankSiblings(credit, all).map((c) => c.id)).toEqual([debit.id, virtual.id]);
+    expect(m.sharedBankLogin(credit, all, get)?.id).toBe(banca.id);
+    expect(m.sharedBankLogin(abuela, all, get)).toBeNull();
+    expect(m.sharedBankLogin(nu, all, get)).toBeNull();
+    expect(m.cardKindLabel(virtual)).toBe('Crédito virtual');
+    expect(m.cardKindLabel({ virtual: true })).toBe('Virtual');
+    expect(m.cardKindLabel({})).toBe('');
+    expect(m.subtitle(debit)).toBe('BBVA · Débito');
+  });
+
+  it('orden de la cartera: más usadas primero, mismo banco junto', () => {
+    const card = (title: string, bank: string, uses: number, extra: object = {}) =>
+      Object.assign(m.newEntry('card', null), { title, bank, usage: uses ? { count: uses, lastUsedAt: '' } : undefined, ...extra });
+    const nu = card('Nu', 'Nu', 9);
+    const bbva1 = card('BBVA Débito', 'BBVA', 5);
+    const amex = card('Amex', 'Amex', 4);
+    const bbva2 = card('BBVA Azul', 'bbva', 1);
+    const fav = card('Favorita', 'HSBC', 0, { favorite: true });
+    const note = m.newEntry('note', null);
+    expect(m.walletOrder([note, bbva2, amex, nu, bbva1, fav]).map((c) => c.title))
+      .toEqual(['Favorita', 'Nu', 'BBVA Débito', 'BBVA Azul', 'Amex']);
   });
 });
 

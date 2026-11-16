@@ -31,6 +31,11 @@ export const appConfig: ApplicationConfig = {
         skipInitialTransition: true,
         onViewTransitionCreated: ({ transition, from, to }) => {
           const root = document.documentElement;
+          // El carrusel de tarjetas ya cambió la vista: la ruta solo se pone al día.
+          if (root.classList.contains('vt-skip')) {
+            transition.skipTransition();
+            return;
+          }
           const a = depth(from);
           const b = depth(to);
           let dir: string;

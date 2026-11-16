@@ -114,8 +114,11 @@ export class Detail {
   protected readonly cardKindLabel = cardKindLabel;
   protected readonly cardTab = signal<'card' | 'bank'>('card');
 
-  /** Todas las tarjetas, en el orden de la Cartera, para el carrusel. */
-  protected readonly deck = computed(() => (this.entry()?.kind === 'card' ? walletOrder(this.store.entries()) : []));
+  /** Todas las tarjetas, en el orden de la Cartera, para el carrusel. Archivadas solo entre ellas. */
+  protected readonly deck = computed(() => {
+    const e = this.entry();
+    return e?.kind === 'card' ? walletOrder(this.store.entries().filter((x) => !!x.archived === !!e.archived)) : [];
+  });
   protected readonly deckIndex = computed(() => this.deck().findIndex((c) => c.id === this.currentId()));
   private readonly rail = viewChild<ElementRef<HTMLElement>>('rail');
   private shownRail: HTMLElement | null = null;

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
-import { digitsOnly, formatCard, type CardEntry } from '@keyme/models';
+import { cardKindLabel, digitsOnly, formatCard, type CardEntry } from '@keyme/models';
 import { Brands, hueOf, inkFor } from '../core/brands';
 import { Clipboard } from '../core/clipboard.service';
 import { Icon } from './icon';
@@ -19,6 +19,9 @@ const NETWORK_LABEL: Record<string, string> = { visa: 'VISA', mastercard: 'maste
   imports: [Icon],
   host: {
     '[style.--h]': 'hue()',
+    '[class.custom]': '!!color()',
+    '[class.light]': 'color() && inkFor(color()!) === \'#111\'',
+    '[style.--cc]': 'color() ? \'#\' + color() : null',
     '[class.flipped]': 'flipped()',
     '[class.compact]': 'compact()',
     '[style.--rx.deg]': 'rx()',
@@ -37,7 +40,8 @@ const NETWORK_LABEL: Record<string, string> = { visa: 'VISA', mastercard: 'maste
             </span>
           }
           <span class="bank">{{ card().bank || card().title || 'Tarjeta' }}</span>
-          @if (card().dynamicCvv) { <span class="dyn"><km-icon name="zap" [size]="11" /> CVV dinámico</span> }
+          @if (kindLabel(); as k) { <span class="dyn kind">@if (card().virtual) { <km-icon name="phone" [size]="11" /> }{{ k }}</span> }
+          @if (card().dynamicCvv) { <span class="dyn" [attr.title]="kindLabel() ? 'CVV dinámico' : null"><km-icon name="zap" [size]="11" />@if (!kindLabel()) { CVV dinámico }</span> }
         </div>
         <div class="chip-row"><span class="emv"></span><svg class="nfc" viewBox="0 0 24 24"><path d="M8 7a7 7 0 0 1 0 10M12 4.5a11 11 0 0 1 0 15M4 9.5a3.5 3.5 0 0 1 0 5" /></svg></div>
         <button type="button" class="num mono copyable" (click)="copy($event, 'number')" [attr.tabindex]="interactive() ? 0 : -1">
@@ -82,6 +86,19 @@ const NETWORK_LABEL: Record<string, string> = { visa: 'VISA', mastercard: 'maste
     </div>
   `,
   styles: `
+    /* Degradado por tono (automático o del banco) o a partir de un color sólido. */
+    :host {
+      --k1: hsl(var(--h) 46% 28%); --k2: hsl(calc(var(--h) + 20) 42% 13%);
+      --k-glow: hsl(calc(var(--h) + 30) 62% 56% / .55); --k-deep: hsl(calc(var(--h) - 20) 56% 34% / .7);
+      --k-shadow: hsl(var(--h) 60% 8% / .95); --k-ink: hsl(var(--h) 40% 95%);
+    }
+    :host(.custom) {
+      --k1: color-mix(in oklab, var(--cc), white 6%); --k2: color-mix(in oklab, var(--cc), black 55%);
+      --k-glow: color-mix(in oklab, color-mix(in oklab, var(--cc), white 35%) 55%, transparent);
+      --k-deep: color-mix(in oklab, color-mix(in oklab, var(--cc), black 30%) 70%, transparent);
+      --k-shadow: color-mix(in oklab, var(--cc) 25%, rgb(0 0 0 / .95)); --k-ink: color-mix(in oklab, var(--cc) 8%, white);
+    }
+    :host(.custom.light) { --k1: color-mix(in oklab, var(--cc), white 25%); --k2: color-mix(in oklab, var(--cc), black 22%); --k-ink: color-mix(in oklab, var(--cc) 15%, #111); }
     :host { display: block; width: 100%; max-width: 420px; aspect-ratio: 1.586; container-type: inline-size; perspective: 1400px; --rx: 0deg; --ry: 0deg; --gx: 50%; }
     .flip {
       position: relative; height: 100%; transform-style: preserve-3d;
@@ -92,12 +109,12 @@ const NETWORK_LABEL: Record<string, string> = { visa: 'VISA', mastercard: 'maste
     :host(.tilting) .flip { transition: transform .12s linear; }
     .face {
       position: absolute; inset: 0; border-radius: 5.5cqw; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden;
-      color: hsl(var(--h) 40% 95%);
+      color: var(--k-ink);
       background:
-        radial-gradient(120% 90% at 100% 0%, hsl(calc(var(--h) + 30) 62% 56% / .55), transparent 55%),
-        radial-gradient(90% 80% at 0% 100%, hsl(calc(var(--h) - 20) 56% 34% / .7), transparent 60%),
-        linear-gradient(135deg, hsl(var(--h) 46% 28%), hsl(calc(var(--h) + 20) 42% 13%));
-      box-shadow: 0 26px 50px -22px hsl(var(--h) 60% 8% / .95), inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1px rgba(255,255,255,.07);
+        radial-gradient(120% 90% at 100% 0%, var(--k-glow), transparent 55%),
+        radial-gradient(90% 80% at 0% 100%, var(--k-deep), transparent 60%),
+        linear-gradient(135deg, var(--k1), var(--k2));
+      box-shadow: 0 26px 50px -22px var(--k-shadow), inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1px rgba(255,255,255,.07);
     }
     .face::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 9px); pointer-events: none; }
     .front { padding: 6cqw 7cqw; display: flex; flex-direction: column; }
@@ -162,6 +179,7 @@ export class CardVisual {
     const k = NETWORK_KEY[this.card().network];
     return k ? this.brands.get(k)?.path || null : null;
   });
+  protected readonly kindLabel = computed(() => cardKindLabel(this.card()));
   protected readonly netLabel = computed(() => NETWORK_LABEL[this.card().network] ?? '');
 
   protected readonly number = computed(() => {
@@ -169,6 +187,13 @@ export class CardVisual {
     if (!n) return '•••• •••• •••• ••••';
     if (this.revealed()) return formatCard(n);
     return `•••• •••• •••• ${n.slice(-4)}`;
+  });
+
+  protected readonly inkFor = inkFor;
+  /** Color sólido sin '#', solo si es un hex válido. */
+  protected readonly color = computed(() => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(this.card().color ?? '');
+    return m ? m[1] : null;
   });
 
   protected readonly hue = computed(() => {

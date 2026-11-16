@@ -93,6 +93,7 @@ export interface LoginEntry extends EntryBase {
 }
 
 export type CardNetwork = 'visa' | 'mastercard' | 'amex' | 'discover' | 'carnet' | 'other';
+export type CardType = 'debit' | 'credit' | 'prepaid' | 'other';
 
 export interface CardEntry extends EntryBase {
   kind: 'card';
@@ -110,8 +111,31 @@ export interface CardEntry extends EntryBase {
   bankAppUrl: string;
   /** Tono de la tarjeta en la vista (0-360). */
   hue?: number;
-  /** Login de la banca en línea / app del banco que va con esta tarjeta. */
+  /** Color sólido elegido (#rrggbb, p. ej. negro o plata); manda sobre `hue`. */
+  color?: string;
+  /**
+   * Login de la banca en línea / app del banco. Las tarjetas del mismo banco
+   * (débito, crédito, virtuales) comparten uno solo.
+   */
   loginId?: string | null;
+  /** Débito, crédito… Ausente en tarjetas de versiones viejas. */
+  cardType?: CardType;
+  /** Tarjeta virtual (solo existe en la app del banco). */
+  virtual?: boolean;
+}
+
+export const CARD_TYPE_LABELS: Record<CardType, string> = {
+  debit: 'Débito',
+  credit: 'Crédito',
+  prepaid: 'Prepago',
+  other: 'Otra',
+};
+
+/** "Crédito virtual", "Débito", "Virtual" o "" si no se sabe. */
+export function cardKindLabel(c: Pick<CardEntry, 'cardType' | 'virtual'>): string {
+  const t = c.cardType && c.cardType !== 'other' ? CARD_TYPE_LABELS[c.cardType] : '';
+  if (!c.virtual) return t;
+  return t ? `${t} virtual` : 'Virtual';
 }
 
 export type DocumentType = 'ine' | 'curp' | 'rfc' | 'nss' | 'pasaporte' | 'licencia' | 'otro';
@@ -271,7 +295,7 @@ export function newEntry<K extends EntryKind>(kind: K, spaceId: string | null, n
   };
   const extra: Record<EntryKind, object> = {
     login: { username: '', password: '', urls: [], androidPackages: [], recoveryCodes: [], signInWith: null },
-    card: { holder: '', number: '', expiry: '', cvv: '', dynamicCvv: false, pin: '', bank: '', network: 'other', bankAppPackage: '', bankAppUrl: '', loginId: null },
+    card: { holder: '', number: '', expiry: '', cvv: '', dynamicCvv: false, pin: '', bank: '', network: 'other', bankAppPackage: '', bankAppUrl: '', loginId: null, virtual: false },
     document: { docType: 'ine', number: '', fullName: '', issuedAt: '', expiresAt: '' },
     identity: { fullName: '', email: '', phone: '', birthDate: '', street: '', city: '', state: '', zip: '', country: 'México' },
     note: {},
@@ -310,7 +334,7 @@ export function subtitle(e: Entry): string {
     case 'login':
       return e.username || hostOf(e.urls[0]?.value ?? '') || '';
     case 'card':
-      return [e.bank, maskCard(e.number)].filter(Boolean).join(' · ');
+      return [e.bank, cardKindLabel(e), maskCard(e.number)].filter(Boolean).join(' · ');
     case 'document':
       return [DOC_LABELS[e.docType], e.number && mask(e.number, 4)].filter(Boolean).join(' · ');
     case 'identity':
@@ -503,7 +527,7 @@ export function fuzzyScore(query: string, text: string): number {
 export function searchText(e: Entry, spaceName = '', ownerName = ''): string {
   const parts: string[] = [e.title, e.tags.join(' '), spaceName, ownerName, KIND_LABELS[e.kind]];
   if (e.kind === 'login') parts.push(e.username, ...e.urls.map((u) => u.value), ...e.androidPackages);
-  if (e.kind === 'card') parts.push(e.bank, e.holder, digitsOnly(e.number).slice(-4));
+  if (e.kind === 'card') parts.push(e.bank, e.holder, digitsOnly(e.number).slice(-4), cardKindLabel(e));
   if (e.kind === 'document') parts.push(DOC_LABELS[e.docType], e.fullName);
   if (e.kind === 'identity') parts.push(e.fullName, e.email, e.phone);
   if (e.kind === 'wifi') parts.push(e.ssid);
@@ -564,6 +588,42 @@ export function serviceName(entries: Entry[]): string {
   return login ? baseDomain(hostOf(login.urls[0].value)) : 'Sin título';
 }
 
+/**
+ * Las demás tarjetas del mismo banco y de la misma persona: comparten la
+ * banca en línea. Se compara por banco (o por el login ya vinculado).
+ */
+export function bankSiblings(card: CardEntry, entries: Entry[]): CardEntry[] {
+  const own = (c: CardEntry) => (c.ownerId ?? null) === (card.ownerId ?? null);
+  const byBank = card.bank.trim() ? serviceKey({ ...card, loginId: null }) : '';
+  return entries.filter((x): x is CardEntry => {
+    if (x.kind !== 'card' || x.id === card.id || !own(x)) return false;
+    if (card.loginId && x.loginId === card.loginId) return true;
+    return !!byBank && x.bank.trim() !== '' && serviceKey({ ...x, loginId: null }) === byBank;
+  });
+}
+
+/** El login de banca en línea que ya usan las otras tarjetas del banco. */
+export function sharedBankLogin(card: CardEntry, entries: Entry[], get: (id: string) => Entry | undefined): LoginEntry | null {
+  for (const c of bankSiblings(card, entries)) {
+    const l = c.loginId ? get(c.loginId) : undefined;
+    if (l?.kind === 'login') return l;
+  }
+  return null;
+}
+
+/**
+ * Orden de las tarjetas en la cartera y el carrusel: favoritas y más usadas
+ * primero, pero las de un mismo banco y dueño quedan juntas.
+ */
+export function walletOrder(entries: Entry[]): CardEntry[] {
+  const list = entries.filter((e): e is CardEntry => e.kind === 'card')
+    .sort((a, b) => Number(b.favorite) - Number(a.favorite) || (b.usage?.count ?? 0) - (a.usage?.count ?? 0));
+  const rank = new Map<string, number>();
+  const key = (c: CardEntry) => `${c.ownerId ?? ''}|${c.loginId || fold(c.bank.trim()) || c.id}`;
+  list.forEach((c, i) => rank.has(key(c)) || rank.set(key(c), i));
+  return list.map((c, i) => ({ c, i })).sort((a, b) => rank.get(key(a.c))! - rank.get(key(b.c))! || a.i - b.i).map((x) => x.c);
+}
+
 /** Lo que distingue a una cuenta de sus hermanas dentro del grupo. */
 export function accountLabel(e: Entry): string {
   const rest = e.title.slice(titlePrefix(e.title).length).replace(/^[\s·|(–—-]+|\)$/g, '').trim();
@@ -571,7 +631,7 @@ export function accountLabel(e: Entry): string {
     case 'login':
       return e.username || rest || e.title;
     case 'card':
-      return [rest || KIND_LABELS.card, maskCard(e.number)].filter(Boolean).join(' · ');
+      return [rest || cardKindLabel(e) || KIND_LABELS.card, maskCard(e.number)].filter(Boolean).join(' · ');
     default:
       return rest || subtitle(e) || e.title;
   }

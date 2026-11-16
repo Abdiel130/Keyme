@@ -3,8 +3,8 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
-  DOC_LABELS, KIND_LABELS, baseDomain, detectNetwork, digitsOnly, formatCard, hostOf, isEntry, luhnValid, newEntry, serviceKey, titlePrefix, uuidv7,
-  type AttachmentRef, type CardEntry, type Entry, type EntryKind, type GeneratorRule, type LoginEntry, type UrlMatch,
+  CARD_TYPE_LABELS, DOC_LABELS, KIND_LABELS, bankSiblings, baseDomain, detectNetwork, digitsOnly, formatCard, hostOf, isEntry, luhnValid, newEntry, serviceKey, sharedBankLogin, titlePrefix, uuidv7,
+  type AttachmentRef, type CardEntry, type CardType, type Entry, type EntryKind, type GeneratorRule, type LoginEntry, type UrlMatch,
 } from '@keyme/models';
 import { Brands, hueOf, type Brand } from '../../core/brands';
 import { morph } from '../../core/motion';
@@ -70,6 +70,30 @@ export class Editor {
   protected readonly showMore = signal(false);
   protected readonly cardBack = signal(false);
   protected readonly hues = [28, 210, 145, 0, 265, 330, 190, 50];
+  /** Colores sólidos de tarjetas reales: el degradado se arma solo. */
+  protected readonly solids = [
+    { hex: '#141414', name: 'Negro' },
+    { hex: '#3b3e44', name: 'Grafito' },
+    { hex: '#c9ccd1', name: 'Plata' },
+    { hex: '#c8a45a', name: 'Oro' },
+    { hex: '#d9a99c', name: 'Oro rosa' },
+    { hex: '#efeee9', name: 'Blanco' },
+  ];
+
+  protected setHue(h: number): void {
+    this.card.hue = h;
+    delete this.card.color;
+    this.touch();
+  }
+
+  protected isSolid(hex: string): boolean {
+    return this.solids.some((s) => s.hex === hex);
+  }
+
+  protected setColor(hex: string): void {
+    this.card.color = hex.toLowerCase();
+    this.touch();
+  }
   private added: string[] = [];
 
   // Tarjeta: pestaña de banca en línea
@@ -79,10 +103,23 @@ export class Editor {
   protected bankUser = '';
   protected bankPass = '';
   private original: AttachmentRef[] = [];
+  /** Banca en línea con la que se abrió el editor (para pasar el cambio a las hermanas). */
+  private originalLoginId: string | null = null;
 
   protected readonly kindLabel = KIND_LABELS;
   protected readonly docTypes = Object.entries(DOC_LABELS);
   protected readonly bankApps = BANK_APPS;
+  protected readonly cardTypes = Object.entries(CARD_TYPE_LABELS).filter(([k]) => k !== 'other') as [CardType, string][];
+  private readonly get = (id: string) => {
+    const r = this.store.records().get(id);
+    return r && isEntry(r) ? r : undefined;
+  };
+
+  /** Las otras tarjetas de este banco: comparten la banca en línea. */
+  protected readonly siblingCards = computed(() => {
+    this.rev();
+    return this.draft?.kind === 'card' ? bankSiblings(this.card, this.store.entries()) : [];
+  });
 
   protected readonly logins = computed(() =>
     this.store.entries().filter((e): e is LoginEntry => e.kind === 'login' && e.id !== this.draft?.id && !e.signInWith)
@@ -167,7 +204,14 @@ export class Editor {
       if (base && isEntry(base) && base.kind === this.draft.kind) {
         this.copyService(base);
         liked = true;
+      } else if (base && isEntry(base) && base.kind === 'login' && this.draft.kind === 'card') {
+        // "Agregar tarjeta" desde la banca en línea: ya va vinculada.
+        const bank = titlePrefix(base.title);
+        Object.assign(this.draft, { bank, title: bank, loginId: base.id, ownerId: base.ownerId ?? null, spaceId: base.spaceId });
+        const b = this.brands.forName(bank);
+        if (b) this.draft.hue = hueOf(b.hex);
       }
+      if (this.draft.kind === 'card') this.draft.cardType = 'debit';
       this.isNew.set(true);
     }
     this.pickerDone.set(liked);
@@ -180,6 +224,7 @@ export class Editor {
     this.showTotp.set(e.kind === 'login' && !!e.totp);
     this.showMore.set(!!(e.fields.length || e.attachments.length || e.tags.length || (e.kind === 'login' && (e.urls.length > 1 || e.androidPackages.length || e.recoveryCodes.length))));
     this.original = [...this.draft.attachments];
+    this.originalLoginId = this.draft.kind === 'card' ? this.draft.loginId ?? null : null;
     this.added = [];
     this.tagsText.set(this.draft.tags.join(', '));
     if (this.draft.kind === 'login') {
@@ -202,7 +247,8 @@ export class Editor {
       d.generatorRule = base.generatorRule;
     }
     if (base.kind === 'card' && d.kind === 'card') {
-      Object.assign(d, { bank: base.bank, dynamicCvv: base.dynamicCvv, bankAppPackage: base.bankAppPackage, bankAppUrl: base.bankAppUrl, holder: base.holder, hue: base.hue });
+      // Otra tarjeta del mismo banco: misma banca en línea, mismo titular.
+      Object.assign(d, { bank: base.bank, dynamicCvv: base.dynamicCvv, bankAppPackage: base.bankAppPackage, bankAppUrl: base.bankAppUrl, holder: base.holder, hue: base.hue, color: base.color, loginId: base.loginId ?? null });
     }
   }
 
@@ -354,7 +400,40 @@ export class Editor {
     c.hue = hueOf(b.hex);
     const app = BANK_APPS.find((a) => a.brand === b.key);
     if (app && !c.bankAppPackage) c.bankAppPackage = app.pkg;
+    this.linkSharedBank();
     this.touch();
+  }
+
+  /** Una tarjeta nueva toma la banca en línea que ya tienen las otras del banco. */
+  protected linkSharedBank(): void {
+    if (!this.isNew() || this.draft.kind !== 'card' || this.card.loginId) return;
+    const l = sharedBankLogin(this.card, this.store.entries(), this.get);
+    if (l) {
+      this.card.loginId = l.id;
+      this.bankMode.set('existing');
+    }
+  }
+
+  protected setCardType(t: CardType): void {
+    this.card.cardType = this.card.cardType === t ? undefined : t;
+    this.touch();
+  }
+
+  /**
+   * Una sola banca en línea por banco: al vincular (o cambiar) la de esta
+   * tarjeta, las otras del banco sin banca o con la anterior toman la nueva.
+   */
+  private async shareBankLogin(card: CardEntry): Promise<number> {
+    const id = card.loginId ?? null;
+    if (!id || id === this.originalLoginId) return 0;
+    const prev = this.originalLoginId;
+    let n = 0;
+    for (const c of bankSiblings(card, this.store.entries())) {
+      if (c.loginId && c.loginId !== prev) continue;
+      await this.store.save({ ...c, loginId: id });
+      n++;
+    }
+    return n;
   }
 
   protected onCardNumber(v: string): void {
@@ -448,11 +527,12 @@ export class Editor {
     try {
       if (e.kind === 'card') await this.saveBankLogin(e);
       const saved = await this.store.save(e);
+      const shared = saved.kind === 'card' ? await this.shareBankLogin(saved) : 0;
       // Adjuntos quitados en esta edición
       const kept = new Set(saved.attachments.map((a) => a.id));
       for (const a of this.original) if (!kept.has(a.id)) await this.store.deleteFile(a.id);
       this.added = [];
-      this.toasts.show(this.isNew() ? 'Guardado' : 'Cambios guardados');
+      this.toasts.show((this.isNew() ? 'Guardado' : 'Cambios guardados') + (shared ? ` · banca en línea vinculada a ${shared === 1 ? 'otra tarjeta' : `${shared} tarjetas más`}` : ''));
       void this.router.navigate(['/item', saved.id], { replaceUrl: true });
     } finally {
       this.saving.set(false);

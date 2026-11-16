@@ -177,7 +177,7 @@
     @if (off > 0) { <span class="act r"><km-icon [name]="e.kind === 'card' ? 'card' : 'key'" [size]="20" /> {{ e.kind === 'card' || e.kind === 'document' ? 'Número' : 'Contraseña' }}</span> }
     @if (off < 0) { <span class="act l">{{ e.kind === 'wifi' ? 'Red' : 'Usuario' }} <km-icon name="identity" [size]="20" /></span> }
     <div class="item" role="button" tabindex="0" [attr.data-id]="e.id" [class.child]="child"
-         [class.on]="selected() === e.id" [class.morph]="lastOpened() === e.id || selected() === e.id"
+         [class.on]="selected() === e.id" [class.morph]="e.kind !== 'card' && (lastOpened() === e.id || selected() === e.id)"
          [style.transform]="off ? 'translateX(' + off + 'px)' : null"
          (click)="open(e)" (keydown.enter)="open(e)"
          (pointerdown)="down($event, e)" (pointermove)="moveRow($event, e)" (pointerup)="up(e)" (pointercancel)="up(e)">

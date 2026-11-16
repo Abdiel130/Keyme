@@ -142,7 +142,13 @@ export class EntryList {
 
   protected kindsOf(g: ServiceGroup): string {
     const n = g.entries.length;
-    return g.entries.every((e) => e.kind === 'login') ? `${n} cuentas` : `${n} elementos`;
+    if (g.entries.every((e) => e.kind === 'login')) return `${n} cuentas`;
+    const cards = g.entries.filter((e) => e.kind === 'card').length;
+    if (cards && cards + g.entries.filter((e) => e.kind === 'login').length === n) {
+      const t = `${cards} ${cards === 1 ? 'tarjeta' : 'tarjetas'}`;
+      return cards === n ? t : `${t} y banca en línea`;
+    }
+    return `${n} elementos`;
   }
 
   /** "de Abuelita" si en el grupo hay cuentas de otras personas. */

@@ -135,13 +135,18 @@
       </div>
       @if (cardTab() === 'bank') {
         <section class="sheet-card rise">
-          <p class="muted small lead-in">El usuario y la contraseña de la app o el sitio del banco. Se guardan como un login aparte, vinculado a esta tarjeta, y en la lista se ven juntos.</p>
+          <p class="muted small lead-in">El usuario y la contraseña de la app o el sitio del banco. Se guardan como un login aparte y lo comparten todas tus tarjetas de {{ d.bank || 'este banco' }}: débito, crédito y virtuales.</p>
           @if (bankLinked(); as l) {
             <div class="linked-login">
               <km-avatar [entry]="l" [size]="40" />
               <span class="grow"><b>{{ l.title }}</b><span class="faint small">{{ l.username || 'Sin usuario' }}</span></span>
               <button type="button" class="btn sm ghost" (click)="d.loginId = null; touch()"><km-icon name="x" [size]="15" /> Desvincular</button>
             </div>
+            @if (siblingCards().length) {
+              <p class="hint shared-with"><km-icon name="card" [size]="13" /> También la usan:
+                @for (s of siblingCards(); track s.id; let last = $last) { {{ s.title }}{{ s.number ? ' ' + s.number.slice(-4) : '' }}{{ last ? '' : ',' }} }
+              </p>
+            }
           } @else {
             <div class="seg how">
               <button type="button" [class.on]="bankMode() === 'new'" (click)="bankMode.set('new')">Capturar acceso</button>
@@ -181,6 +186,15 @@
           }
         </div>
         <div class="field">
+          <label>Tipo</label>
+          <div class="doc-types card-types">
+            @for (t of cardTypes; track t[0]) {
+              <button type="button" class="dchip" [class.on]="d.cardType === t[0]" [attr.aria-pressed]="d.cardType === t[0]" (click)="setCardType(t[0])">{{ t[1] }}</button>
+            }
+            <button type="button" class="dchip" [class.on]="d.virtual" [attr.aria-pressed]="!!d.virtual" (click)="d.virtual = !d.virtual; touch()"><km-icon name="phone" [size]="14" /> Virtual</button>
+          </div>
+        </div>
+        <div class="field">
           <label for="num">Número de tarjeta @if (d.network !== 'other') { <span class="chip accent">{{ d.network }}</span> }</label>
           <input id="num" name="num" class="mono big-in" inputmode="numeric" [ngModel]="cardFormatted()" (ngModelChange)="onCardNumber($event)" (focus)="cardBack.set(false)" placeholder="0000 0000 0000 0000" />
           @if (cardInvalid()) { <span class="hint bad">El número no pasa la verificación (Luhn). Revísalo.</span> }
@@ -194,7 +208,7 @@
         </div>
         <div class="grid-2">
           <div class="field"><label for="hol">Titular</label><input id="hol" name="hol" [(ngModel)]="d.holder" (ngModelChange)="touch()" autocapitalize="characters" /></div>
-          <div class="field"><label for="bank">Banco</label><input id="bank" name="bank" [(ngModel)]="d.bank" (ngModelChange)="touch()" /></div>
+          <div class="field"><label for="bank">Banco</label><input id="bank" name="bank" [(ngModel)]="d.bank" (ngModelChange)="touch()" (blur)="linkSharedBank(); touch()" /></div>
         </div>
         <label class="check"><input type="checkbox" name="dyn" [(ngModel)]="d.dynamicCvv" (ngModelChange)="touch()" /> Esta tarjeta usa CVV dinámico</label>
         @if (d.dynamicCvv) {

@@ -53,7 +53,7 @@
           @if (owner(); as o) {
             <button class="chip sp" [style.--c]="o.color" (click)="filterBy({ type: 'person', id: o.id })"><km-icon name="users" [size]="13" /> de {{ o.name }}</button>
           }
-          <span class="chip"><km-icon [name]="e.kind" [size]="13" /> {{ e.kind === 'document' ? docLabel[$any(e).docType] : kindLabel[e.kind] }}</span>
+          <span class="chip"><km-icon [name]="e.kind" [size]="13" /> {{ e.kind === 'document' ? docLabel[$any(e).docType] : e.kind === 'card' ? (cardKindLabel(asCard(e)) || kindLabel.card) : kindLabel[e.kind] }}</span>
           @for (t of e.tags; track t) {
             <button class="chip tagc" (click)="filterBy({ type: 'tag', tag: t })">#{{ t }}</button>
           }
@@ -134,7 +134,9 @@
           </div>
         }
         @if (cards().length) {
-          <h3>Tarjetas con esta banca en línea</h3>
+          <h3>Tarjetas con esta banca en línea
+            <a class="btn sm tonal push" [routerLink]="['/new', 'card']" [queryParams]="{ like: e.id }"><km-icon name="plus" [size]="15" /> Agregar tarjeta</a>
+          </h3>
           <div class="deps">
             @for (c of cards(); track c.id) {
               <a class="dep" [routerLink]="['/item', c.id]"><km-avatar [entry]="c" [size]="30" /> {{ c.title }} <span class="faint small">{{ accountLabel(c) }}</span></a>
@@ -165,6 +167,11 @@
             </section>
             @if (c.bankAppUrl || c.bankAppPackage || l.androidPackages.length) {
               <button class="btn primary lg block bank-open" (click)="openBankApp(c, l)"><km-icon name="bank" [size]="18" /> Abrir app del banco</button>
+            }
+            @if (bankmates().length) {
+              <p class="faint small sub shared">Es la misma banca en línea de
+                @for (m of bankmates(); track m.id; let last = $last) { <a [routerLink]="['/item', m.id]">{{ accountLabel(m) }}</a>{{ last ? '.' : ',' }} }
+              </p>
             }
           } @else {
             <div class="empty-tab rise">
@@ -252,10 +259,15 @@
     }
 
     @if (siblings(); as sib) {
-      @if (sib.others.length || e.kind === 'login') {
+      @if (sib.others.length || e.kind === 'login' || e.kind === 'card') {
         <h3>
-          {{ sib.others.length ? 'Otras cuentas de ' + sib.name : 'Más cuentas de ' + sib.name }}
-          <a class="btn sm tonal push" [routerLink]="['/new', e.kind]" [queryParams]="{ like: e.id }"><km-icon name="plus" [size]="15" /> Agregar otra cuenta</a>
+          @if (e.kind === 'card') {
+            {{ sib.others.length ? 'Más de ' + sib.name : 'Tarjetas de ' + sib.name }}
+            <a class="btn sm tonal push" [routerLink]="['/new', 'card']" [queryParams]="{ like: e.id }"><km-icon name="plus" [size]="15" /> Agregar otra tarjeta</a>
+          } @else {
+            {{ sib.others.length ? 'Otras cuentas de ' + sib.name : 'Más cuentas de ' + sib.name }}
+            <a class="btn sm tonal push" [routerLink]="['/new', e.kind]" [queryParams]="{ like: e.id }"><km-icon name="plus" [size]="15" /> Agregar otra cuenta</a>
+          }
         </h3>
         @if (sib.others.length) {
           <div class="group">

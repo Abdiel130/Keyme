@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { DOC_LABELS, digitsOnly, type CardEntry, type DocumentEntry, type LoginEntry } from '@keyme/models';
+import { DOC_LABELS, digitsOnly, fold, type CardEntry, type DocumentEntry, type LoginEntry } from '@keyme/models';
 import { Clipboard } from '../../core/clipboard.service';
 import { Toasts } from '../../core/toasts';
 import { VaultStore } from '../../core/vault.store';
@@ -145,10 +145,15 @@ export class Wallet {
   protected readonly reveal = signal(false);
   protected readonly flip = signal(false);
 
-  protected readonly cards = computed(() =>
-    this.store.entries().filter((e): e is CardEntry => e.kind === 'card')
-      .sort((a, b) => Number(b.favorite) - Number(a.favorite) || (b.usage?.count ?? 0) - (a.usage?.count ?? 0)),
-  );
+  /** Más usadas primero, pero las tarjetas de un mismo banco quedan juntas. */
+  protected readonly cards = computed(() => {
+    const list = this.store.entries().filter((e): e is CardEntry => e.kind === 'card')
+      .sort((a, b) => Number(b.favorite) - Number(a.favorite) || (b.usage?.count ?? 0) - (a.usage?.count ?? 0));
+    const rank = new Map<string, number>();
+    const key = (c: CardEntry) => `${c.ownerId ?? ''}|${c.loginId || fold(c.bank.trim()) || c.id}`;
+    list.forEach((c, i) => rank.has(key(c)) || rank.set(key(c), i));
+    return list.map((c, i) => ({ c, i })).sort((a, b) => rank.get(key(a.c))! - rank.get(key(b.c))! || a.i - b.i).map((x) => x.c);
+  });
   protected readonly openCard = computed(() => this.cards().find((c) => c.id === this.open()) ?? null);
   protected readonly docs = computed(() => this.store.entries().filter((e): e is DocumentEntry => e.kind === 'document'));
 

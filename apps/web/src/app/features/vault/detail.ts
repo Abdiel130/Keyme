@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
-  DOC_LABELS, KIND_LABELS, accountLabel, digitsOnly, formatCard, hostOf, isEntry, serviceKey, serviceName, wifiQrPayload,
+  DOC_LABELS, KIND_LABELS, accountLabel, bankSiblings, cardKindLabel, digitsOnly, formatCard, hostOf, isEntry, serviceKey, serviceName, wifiQrPayload,
   type AttachmentRef, type CardEntry, type Entry, type HistoryEntry, type LoginEntry,
 } from '@keyme/models';
 import { Brands } from '../../core/brands';
@@ -94,7 +94,13 @@ export class Detail {
     const others = all.filter((x) => x.id !== e.id && x.id !== this.bankLogin()?.id && !this.cards().some((c) => c.id === x.id));
     return { name: serviceName(all), others };
   });
+  /** Tarjetas del mismo banco que comparten esta banca en línea. */
+  protected readonly bankmates = computed(() => {
+    const e = this.entry();
+    return e?.kind === 'card' && e.loginId ? bankSiblings(e, this.store.entries()).filter((c) => c.loginId === e.loginId) : [];
+  });
   protected readonly accountLabel = accountLabel;
+  protected readonly cardKindLabel = cardKindLabel;
   protected readonly cardTab = signal<'card' | 'bank'>('card');
 
   /** Color de la marca para el halo de la cabecera. */

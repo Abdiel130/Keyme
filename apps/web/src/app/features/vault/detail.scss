@@ -203,3 +203,4 @@ h3 .push { margin-left: auto; }
 
 /* En el teléfono el ícono llega volando desde la lista (km-hero): sin pop. */
 @media (max-width: 860px) { .hero-av { animation: none; } }
+.shared { margin: 14px 2px 0; a { color: var(--accent); } }

@@ -811,6 +811,12 @@ input[type='range'] {
 ::view-transition-group(km-tabbar) {
   z-index: 4;
 }
+/* El ícono que viaja de la lista a la ficha va por encima de la pantalla
+   que se desliza (km-main sube a z-index 5); si no, se esconde debajo y
+   aparece de golpe al final. */
+::view-transition-group(km-hero) {
+  z-index: 7;
+}
 
 /* Cambio de pestaña: eje compartido. */
 :root.vt-tab-next::view-transition-old(km-main),

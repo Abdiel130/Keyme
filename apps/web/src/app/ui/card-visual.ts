@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
-import { digitsOnly, formatCard, type CardEntry } from '@keyme/models';
+import { cardKindLabel, digitsOnly, formatCard, type CardEntry } from '@keyme/models';
 import { Brands, hueOf, inkFor } from '../core/brands';
 import { Clipboard } from '../core/clipboard.service';
 import { Icon } from './icon';
@@ -37,7 +37,8 @@ const NETWORK_LABEL: Record<string, string> = { visa: 'VISA', mastercard: 'maste
             </span>
           }
           <span class="bank">{{ card().bank || card().title || 'Tarjeta' }}</span>
-          @if (card().dynamicCvv) { <span class="dyn"><km-icon name="zap" [size]="11" /> CVV dinámico</span> }
+          @if (kindLabel(); as k) { <span class="dyn kind">@if (card().virtual) { <km-icon name="phone" [size]="11" /> }{{ k }}</span> }
+          @if (card().dynamicCvv) { <span class="dyn" [attr.title]="kindLabel() ? 'CVV dinámico' : null"><km-icon name="zap" [size]="11" />@if (!kindLabel()) { CVV dinámico }</span> }
         </div>
         <div class="chip-row"><span class="emv"></span><svg class="nfc" viewBox="0 0 24 24"><path d="M8 7a7 7 0 0 1 0 10M12 4.5a11 11 0 0 1 0 15M4 9.5a3.5 3.5 0 0 1 0 5" /></svg></div>
         <button type="button" class="num mono copyable" (click)="copy($event, 'number')" [attr.tabindex]="interactive() ? 0 : -1">
@@ -162,6 +163,7 @@ export class CardVisual {
     const k = NETWORK_KEY[this.card().network];
     return k ? this.brands.get(k)?.path || null : null;
   });
+  protected readonly kindLabel = computed(() => cardKindLabel(this.card()));
   protected readonly netLabel = computed(() => NETWORK_LABEL[this.card().network] ?? '');
 
   protected readonly number = computed(() => {

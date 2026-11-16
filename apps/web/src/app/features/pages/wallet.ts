@@ -145,10 +145,10 @@ export class Wallet {
   protected readonly reveal = signal(false);
   protected readonly flip = signal(false);
 
-  /** Más usadas primero, pero las tarjetas de un mismo banco quedan juntas. */
-  protected readonly cards = computed(() => walletOrder(this.store.entries()));
+  /** Más usadas primero, pero las tarjetas de un mismo banco quedan juntas. Sin archivadas. */
+  protected readonly cards = computed(() => walletOrder(this.store.shown()));
   protected readonly openCard = computed(() => this.cards().find((c) => c.id === this.open()) ?? null);
-  protected readonly docs = computed(() => this.store.entries().filter((e): e is DocumentEntry => e.kind === 'document'));
+  protected readonly docs = computed(() => this.store.shown().filter((e): e is DocumentEntry => e.kind === 'document'));
 
   /** Posición de cada tarjeta: en pila, o la abierta arriba y el resto al fondo. */
   protected place(i: number): { y: number; s: number; z: number; piled: boolean } {

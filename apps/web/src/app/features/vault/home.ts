@@ -139,14 +139,14 @@ export class Home {
     const h = new Date().getHours();
     return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
   })();
-  protected readonly expiring = computed(() => expiringSoon(this.store.entries(), 30).slice(0, 5));
+  protected readonly expiring = computed(() => expiringSoon(this.store.shown(), 30).slice(0, 5));
   protected readonly top = computed(() =>
-    [...this.store.entries()]
+    [...this.store.shown()]
       .sort((a, b) => (b.usage?.count ?? 0) - (a.usage?.count ?? 0) || Number(b.favorite) - Number(a.favorite) || b.modifiedAt.localeCompare(a.modifiedAt))
       .slice(0, 6),
   );
-  protected readonly card = computed(() => this.store.entries().find((e): e is CardEntry => e.kind === 'card' && e.favorite) ?? this.store.entries().find((e): e is CardEntry => e.kind === 'card') ?? null);
-  protected readonly cards = computed(() => this.store.entries().filter((e) => e.kind === 'card').length);
+  protected readonly card = computed(() => this.store.shown().find((e): e is CardEntry => e.kind === 'card' && e.favorite) ?? this.store.shown().find((e): e is CardEntry => e.kind === 'card') ?? null);
+  protected readonly cards = computed(() => this.store.shown().filter((e) => e.kind === 'card').length);
 
   protected color(e: Entry): string | null {
     return e.spaceId ? this.ui.spaceById().get(e.spaceId)?.color ?? null : null;

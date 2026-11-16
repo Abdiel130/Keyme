@@ -33,6 +33,7 @@
               }
             }
             <div class="divider"></div>
+            <button role="menuitem" (click)="toggleArchive()"><km-icon [name]="e.archived ? 'unarchive' : 'archive'" [size]="18" /> {{ e.archived ? 'Sacar de archivadas' : 'Archivar' }}</button>
             <button role="menuitem" class="danger" (click)="menu.set(false); confirmDelete.set(true)"><km-icon name="trash" [size]="18" /> Eliminar</button>
           </div>
         }

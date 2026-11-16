@@ -1,6 +1,11 @@
-<header class="head" [class.scrolled]="scrolled()">
+<header class="head" [class.scrolled]="scrolled()" [class.arch]="ui.archiveOpen()" (keydown)="archiveKey($event)">
   <div class="title-row">
-    <h1>{{ ui.filter().type === 'all' ? 'Bóveda' : ui.filterTitle() }}</h1>
+    @if (ui.archiveOpen()) {
+      <button class="btn icon ghost back" (click)="closeArchive()" aria-label="Volver a la bóveda" title="Volver a la bóveda"><km-icon name="back" [size]="22" /></button>
+      <h1 class="arch-title"><km-icon name="archive" [size]="24" /> Archivadas</h1>
+    } @else {
+      <h1>{{ ui.filter().type === 'all' ? 'Bóveda' : ui.filterTitle() }}</h1>
+    }
     <span class="count">{{ ui.filtered().length }}</span>
     <span class="grow"></span>
     <div class="sort">
@@ -32,7 +37,7 @@
 
   <label class="search">
     <km-icon name="search" [size]="19" />
-    <input id="km-search" type="search" [placeholder]="'Buscar en ' + store.entries().length + ' elementos'" [value]="ui.query()"
+    <input id="km-search" type="search" [placeholder]="ui.archiveOpen() ? 'Buscar en archivadas' : 'Buscar en ' + store.shown().length + ' elementos'" [value]="ui.query()"
            (input)="ui.query.set($any($event.target).value)" (keydown)="onKey($event)" autocomplete="off" spellcheck="false" enterkeyhint="search" />
     @if (ui.query()) {
       <button class="btn icon sm ghost" (click)="ui.query.set('')" aria-label="Limpiar"><km-icon name="x" [size]="16" /></button>
@@ -41,6 +46,7 @@
     }
   </label>
 
+  @if (!ui.archiveOpen()) {
   <div class="chips-row">
     <div class="chips" role="tablist" aria-label="Filtros">
       @for (c of chips(); track c.label) {
@@ -51,10 +57,27 @@
       }
     </div>
   </div>
+  }
 </header>
 
-<div class="scroll" tabindex="-1" (keydown)="onKey($event)" (scroll)="onScroll($event)">
-  @if (ui.filter().type === 'all' && !ui.query() && expiring().length) {
+<div class="scroll" #sc tabindex="-1" [class.arch]="ui.archiveOpen()"
+     [class.anim-in]="drawerAnim() === 'in'" [class.anim-out]="drawerAnim() === 'out'" (animationend)="$event.target === sc && drawerAnim.set(null)"
+     (keydown)="onKey($event); archiveKey($event)" (scroll)="onScroll($event)" (wheel)="onWheel($event, sc)"
+     (touchstart)="pullStart($event, sc)" (touchmove)="pullMove($event, sc)" (touchend)="pullEnd()" (touchcancel)="pullEnd()">
+  @if (!ui.archiveOpen()) {
+    <div class="pull" [class.live]="pulling()" [class.armed]="armed()" [style.height.px]="pull()" [style.--p]="pullProgress()" aria-hidden="true">
+      <div class="pull-in">
+        <span class="pull-ic"><km-icon name="archive" [size]="20" /></span>
+        <span class="pull-t">
+          <b>Archivadas</b>
+          <span>{{ armed() ? 'Suelta para abrir' : 'Sigue deslizando' }}@if (store.archived().length) { · {{ store.archived().length }}}</span>
+        </span>
+      </div>
+    </div>
+  } @else {
+    <p class="arch-note"><km-icon name="lock" [size]="14" /> Ocultas de la lista, la búsqueda y los accesos rápidos.</p>
+  }
+  @if (!ui.archiveOpen() && ui.filter().type === 'all' && !ui.query() && expiring().length) {
     @let x = expiring()[0];
     <button class="expiring" (click)="open(x.entry)">
       <span class="ei"><km-icon name="clock" [size]="18" /></span>
@@ -86,6 +109,10 @@
         <span class="ei big"><km-icon name="search" [size]="30" /></span>
         <h2>Sin resultados</h2>
         <p>Nada coincide con “{{ ui.query() }}”.</p>
+      } @else if (ui.archiveOpen()) {
+        <span class="ei big"><km-icon name="archive" [size]="30" /></span>
+        <h2>Nada archivado</h2>
+        <p>Abre una cuenta y elige <b>Archivar</b> en el menú ⋯ para esconderla aquí.</p>
       } @else if (store.entries().length === 0) {
         <span class="ei big"><km-icon name="sparkle" [size]="30" /></span>
         <h2>Tu bóveda está vacía</h2>
@@ -139,7 +166,7 @@
       </div>
     }
   }
-  @if (ui.filtered().length && !ui.query()) {
+  @if (ui.filtered().length && !ui.query() && !ui.archiveOpen()) {
     <p class="hint-swipe faint">Desliza una fila → para copiar la contraseña, ← para el usuario.</p>
   }
 </div>

@@ -110,6 +110,7 @@ export class Shell {
     if (this.active() === '/' && !this.detail()) {
       this.ui.filter.set({ type: 'all' });
       this.ui.query.set('');
+      this.ui.archiveOpen.set(false);
     }
   }
 

@@ -88,7 +88,7 @@ export class Palette {
     const q = this.query().trim();
     const spaces = this.ui.spaceById();
     const people = this.ui.personById();
-    const list = this.store.entries();
+    const list = this.store.shown();
     if (!q) return [...list].sort((a, b) => (b.usage?.lastUsedAt ?? b.modifiedAt).localeCompare(a.usage?.lastUsedAt ?? a.modifiedAt)).slice(0, 8);
     return list
       .map((e) => ({ e, s: fuzzyScore(q, searchText(e, spaces.get(e.spaceId ?? '')?.name, people.get(e.ownerId ?? '')?.name)) + Math.min(e.usage?.count ?? 0, 10) * 0.3 }))

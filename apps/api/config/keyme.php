@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'version' => env('KEYME_VERSION', '1.3.0'),
+    'version' => env('KEYME_VERSION', '1.4.0'),
 
     // Lo genera ./up.sh --setup; solo sirve para crear el vault la primera vez.
     'setup_token' => env('KEYME_SETUP_TOKEN', ''),

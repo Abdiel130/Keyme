@@ -7,6 +7,28 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-16
+
+Las cuentas que ya casi no usas pero no quieres borrar ahora tienen su
+propio cajón. Al archivarlas desaparecen de la lista, la búsqueda, el inicio
+y la cartera, así lo de todos los días queda a la mano. Para verlas basta
+con jalar la lista hacia abajo, y sacarlas del cajón toma un toque.
+
+### Added
+- **Cuentas archivadas**: desde el menú ⋯ de la ficha archivas una cuenta o
+  la sacas de archivadas, con opción de deshacer. Las archivadas no aparecen
+  en la lista, la búsqueda, los filtros, los accesos rápidos, la paleta de
+  comandos ni el inicio.
+- **Cajón oculto**: estando arriba de la lista, jálala hacia abajo (o sube
+  con la rueda o el trackpad en la computadora) y aparece "Archivadas" con
+  un indicador que se estira y un anillo de progreso. Al soltar se abre el
+  cajón. Se cierra con Esc, con el botón atrás o al bloquear el vault.
+
+### Changed
+- **Cartera y carrusel sin archivadas**: las tarjetas archivadas ya no
+  aparecen en la pila de la Cartera ni en el carrusel de tarjetas. Si abres
+  una tarjeta archivada, el carrusel solo te muestra las otras archivadas.
+
 ## [1.3.0] - 2026-11-16
 
 Las tarjetas ahora se manejan como en la vida real: un mismo banco te da
